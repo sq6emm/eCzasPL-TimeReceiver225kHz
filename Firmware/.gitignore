@@ -1,0 +1,5 @@
+build/
+host/sim
+host/sim-static
+host/tools/__pycache__/
+*.raw
