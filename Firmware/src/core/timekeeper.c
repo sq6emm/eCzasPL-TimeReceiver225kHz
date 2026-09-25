@@ -13,6 +13,7 @@
 #define RATE_EARLY_NOISE_TICKS (2 * TICKS_PER_MS)   /* frame timing noise allowance */
 #define REF_ROTATE_S      7200
 #define STEP_CONFIRMATIONS 2        /* older frames that must agree before a synced clock is stepped */
+#define PRESYNC_CONFIRMATIONS 2     /* expected-frame matches that confirm a lone candidate */
 
 static int64_t div_floor(int64_t a, int64_t b)   /* b > 0 */
 {
@@ -89,7 +90,7 @@ void tk_to_date(uint32_t sec, tk_date_t *d)
 
 /* ---- frame handling --------------------------------------------------- */
 
-static void add_cand(tk_t *t, int64_t tick, uint32_t sec)
+static void add_cand(tk_t *t, int64_t tick, uint32_t sec, const frame_info_t *fi)
 {
     uint8_t i, j = 0;
     /* drop stale candidates */
@@ -98,11 +99,14 @@ static void add_cand(tk_t *t, int64_t tick, uint32_t sec)
             t->cand[j++] = t->cand[i];
     t->ncand = j;
     if (t->ncand == TK_NCAND) {
-        memmove(&t->cand[0], &t->cand[1], sizeof(tk_point_t) * (TK_NCAND - 1));
+        memmove(&t->cand[0], &t->cand[1], sizeof(t->cand[0]) * (TK_NCAND - 1));
         t->ncand--;
     }
     t->cand[t->ncand].tick = tick;
     t->cand[t->ncand].sec = sec;
+    t->cand[t->ncand].tz = fi->tz;
+    t->cand[t->ncand].flags = (uint8_t)(fi->ls | fi->lss << 1 | fi->tzc << 2 | (fi->sk & 1) << 3 | (fi->sk >> 1) << 4);
+    t->cand[t->ncand].conf = 0;
     t->ncand++;
 }
 
@@ -110,11 +114,11 @@ static void add_cand(tk_t *t, int64_t tick, uint32_t sec)
  * difference matches the elapsed ticks). */
 static int cand_confirmations(const tk_t *t)
 {
-    const tk_point_t *b = &t->cand[t->ncand - 1];
+    const tk_cand_t *b = &t->cand[t->ncand - 1];
     uint8_t i;
     int n = 0;
     for (i = 0; i + 1 < t->ncand; i++) {
-        const tk_point_t *a = &t->cand[i];
+        const tk_cand_t *a = &t->cand[i];
         int64_t dt = b->tick - a->tick;
         int64_t ds = (int64_t)b->sec - a->sec;
         int64_t expect, tol;
@@ -197,7 +201,7 @@ tk_result_t tk_frame(tk_t *t, int64_t frame_tick, const frame_info_t *fi)
              * is ms per day), while miscorrected frames with the same wrong
              * offset could in principle agree in pairs; so a step needs
              * three consistent frames, the first sync only two. */
-            add_cand(t, tick, sec);
+            add_cand(t, tick, sec, fi);
             if (cand_confirmations(t) >= STEP_CONFIRMATIONS) {
                 sync_to(t, tick, sec);
                 t->n_steps++;
@@ -208,7 +212,7 @@ tk_result_t tk_frame(tk_t *t, int64_t frame_tick, const frame_info_t *fi)
             }
         }
     } else {
-        add_cand(t, tick, sec);
+        add_cand(t, tick, sec, fi);
         if (cand_confirmations(t) < 1) return TK_CANDIDATE;
         sync_to(t, tick, sec);
         r = TK_SYNCED;
@@ -218,6 +222,48 @@ tk_result_t tk_frame(tk_t *t, int64_t frame_tick, const frame_info_t *fi)
     t->sk = fi->sk;
     set_leap(t, fi, sec);
     return r;
+}
+
+int tk_candidate_expected(const tk_t *t, int64_t tick, uint32_t *n3,
+                          uint8_t *tz, uint8_t *flags, uint8_t *idx)
+{
+    int i;
+    tick -= LATENCY_TICKS;
+    if (t->synced) return 0;
+    for (i = (int)t->ncand - 1; i >= 0; i--) {
+        const tk_cand_t *c = &t->cand[i];
+        int64_t dt = tick - c->tick, per = 3 * t->rate_q16, k, expect, tol;
+        if (dt <= 0 || dt > (int64_t)PAIR_MAX_SPAN_S * FCY_HZ) continue;
+        k = (dt * 65536 + per / 2) / per;              /* whole frame periods since */
+        if (k < 1) continue;
+        expect = div_floor(k * per, 65536);
+        tol = 20 * TICKS_PER_MS + dt / 5000;           /* 20 ms + 200 ppm, as for pairs */
+        if (dt - expect > tol || expect - dt > tol) continue;
+        *n3 = c->sec / 3 + (uint32_t)k;
+        *tz = c->tz;
+        *flags = c->flags;
+        *idx = (uint8_t)i;
+        return 1;
+    }
+    return 0;
+}
+
+tk_result_t tk_candidate_confirmed(tk_t *t, uint8_t idx, int64_t tick, uint32_t n3)
+{
+    tk_cand_t *c;
+    frame_info_t fi;
+    if (t->synced || idx >= t->ncand) return TK_REJECTED;
+    c = &t->cand[idx];
+    if (++c->conf < PRESYNC_CONFIRMATIONS) return TK_CANDIDATE;
+    memset(&fi, 0, sizeof fi);
+    fi.n3 = n3;
+    fi.tz = c->tz;
+    fi.ls = c->flags & 1; fi.lss = (c->flags >> 1) & 1; fi.tzc = (c->flags >> 2) & 1;
+    fi.sk = (uint8_t)((c->flags >> 3) & 3);
+    sync_to(t, tick - LATENCY_TICKS, 3UL * n3);
+    t->tz = fi.tz; t->tzc = fi.tzc; t->sk = fi.sk;
+    set_leap(t, &fi, 3UL * n3);
+    return TK_SYNCED;
 }
 
 int tk_expected_n3(const tk_t *t, int64_t tick, uint32_t *n3)

@@ -162,6 +162,41 @@ static void handle_candidate(void)
     log_head("FRAME");
     dbg_printf("#%lu corr %d.%02d ", (unsigned long)n_heard, c->corr_q10 / 1024,
                (int)((int32_t)(c->corr_q10 % 1024) * 100 / 1024));   /* int is 16 bits here */
+    if (st == FR_UNCORRECTABLE && !tk.synced) {
+        /* not synchronised yet: does it match what a stored decoded frame predicts? */
+        uint32_t n3p;
+        uint8_t tz, flags, idx;
+        if (tk_candidate_expected(&tk, tick, &n3p, &tz, &flags, &idx)) {
+            uint8_t bits[FRAME_BITS];
+            int32_t tq = 0;
+            int16_t sc;
+            frame_build(n3p, tz, flags, bits);
+            sc = frame_confirm(c->ph + CAND_PRE, bits, &tq);
+            if (sc >= CONFIRM_MIN_Q10) {
+                tk_result_t r = tk_candidate_confirmed(&tk, idx, tick + (int64_t)tq * TICKS_PER_BLOCK / 32768, n3p);
+                n_confirmed++;
+                dbg_printf("- not decodable, but %d.%02d of it agrees with the frame predicted by an earlier one (snr %d dB): ",
+                           sc / 1024, (int)((int32_t)(sc % 1024) * 100 / 1024), fi.snr_db);
+                put_date(3UL * n3p, tz);
+                dbg_puts("\r\n");
+                log_head("CLOCK");
+                if (r == TK_SYNCED) {
+                    memset(&last_fi, 0, sizeof last_fi);    /* content for later confirmations */
+                    last_fi.n3 = n3p; last_fi.tz = tz;
+                    last_fi.ls = flags & 1; last_fi.lss = (flags >> 1) & 1; last_fi.tzc = (flags >> 2) & 1;
+                    last_fi.sk = (uint8_t)((flags >> 3) & 3);
+                    have_last_fi = 1;
+                    dbg_puts("SYNCHRONISED - one decoded frame confirmed by two more, time set to ");
+                    put_date(3UL * n3p, -1);
+                    dbg_puts("\r\n");
+                } else {
+                    dbg_puts("not synchronised yet - one more matching frame needed\r\n");
+                }
+                g_dsp.cand_ready = 0;
+                return;
+            }
+        }
+    }
     if (st == FR_UNCORRECTABLE && have_last_fi) {
         /* synchronised: compare with the frame the clock expects now */
         uint32_t n3p;

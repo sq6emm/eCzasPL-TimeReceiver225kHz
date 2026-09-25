@@ -30,6 +30,8 @@ typedef enum {
 } tk_result_t;
 
 typedef struct { int64_t tick; uint32_t sec; } tk_point_t;
+/* a frame waiting for confirmation: time, content flags, matches so far */
+typedef struct { int64_t tick; uint32_t sec; uint8_t tz, flags, conf; } tk_cand_t;
 
 typedef struct {
     uint8_t  synced;
@@ -39,7 +41,7 @@ typedef struct {
     int64_t  last_ok_tick;
     tk_point_t ref_old, ref_new;
     uint8_t  have_old, have_new;
-    tk_point_t cand[TK_NCAND];
+    tk_cand_t cand[TK_NCAND];
     uint8_t  ncand;
 
     /* last accepted frame content */
@@ -62,6 +64,17 @@ int      tk_time(const tk_t *t, int64_t tick, uint32_t *sec, uint32_t *usec);
 int64_t  tk_second_tick(const tk_t *t, uint32_t sec);
 /* Synchronised and last good frame less than HOLDOVER_VALID_S ago. */
 int      tk_valid(const tk_t *t, int64_t now_tick);
+/* Before the first sync: the frame that one of the stored candidates (a
+ * decoded frame not yet confirmed) predicts for a frame starting at
+ * frame_tick, if the tick fits its timing. Fills n3, tz, flags (LS LSS TZC
+ * SK0 SK1 as for frame_build) and the candidate index; 0 if none fits. */
+int         tk_candidate_expected(const tk_t *t, int64_t frame_tick, uint32_t *n3,
+                                  uint8_t *tz, uint8_t *flags, uint8_t *idx);
+/* A frame at frame_tick matched candidate idx's expected frame n3. After
+ * PRESYNC_CONFIRMATIONS such matches the clock is set from it (TK_SYNCED),
+ * otherwise TK_CANDIDATE. */
+tk_result_t tk_candidate_confirmed(tk_t *t, uint8_t idx, int64_t frame_tick, uint32_t n3);
+
 /* Frame number (3 s periods) the clock expects for a frame starting at
  * frame_tick, if that tick lies within the acceptance window of a frame
  * start; 0 if not synchronised or outside the window. */

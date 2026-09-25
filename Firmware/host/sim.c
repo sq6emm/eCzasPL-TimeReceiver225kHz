@@ -282,12 +282,28 @@ static int selftest(void)
 
 /* The firmware's expected-frame confirmation (main.c handle_candidate). */
 static int confirm(dsp_t *dsp, tk_t *tk, const frame_info_t *last, int64_t tick,
-                   double ref_t0, uint32_t ref_n0, double tsec, int *wrong)
+                   double ref_t0, uint32_t ref_n0, double tsec, int *wrong, frame_info_t *synced_fi)
 {
     uint32_t n3p;
     uint8_t bits[FRAME_BITS];
     int32_t tq = 0;
     frame_info_t fe;
+    if (!tk->synced) {                 /* before the first sync: candidates' predictions */
+        uint8_t tz, flags, idx;
+        if (!tk_candidate_expected(tk, tick, &n3p, &tz, &flags, &idx)) return 0;
+        frame_build(n3p, tz, flags, bits);
+        if (frame_confirm(dsp->cand.ph + CAND_PRE, bits, &tq) < CONFIRM_MIN_Q10) return 0;
+        if (tk_candidate_confirmed(tk, idx, tick + (int64_t)tq * TICKS_PER_BLOCK / 32768, n3p) == TK_SYNCED) {
+            memset(synced_fi, 0, sizeof *synced_fi);
+            synced_fi->n3 = n3p; synced_fi->tz = tz;
+            synced_fi->ls = flags & 1; synced_fi->lss = (flags >> 1) & 1; synced_fi->tzc = (flags >> 2) & 1;
+            synced_fi->sk = (uint8_t)((flags >> 3) & 3);
+            if (ref_t0 >= 0 && n3p != ref_n0 + (uint32_t)lround((tsec - ref_t0) / 3.0)) (*wrong)++;
+            return 2;
+        }
+        return 1;
+    }
+    if (!last) return 0;
     if (!tk_expected_n3(tk, tick, &n3p)) return 0;
     frame_build(n3p, last->tz, (uint8_t)(last->ls | last->lss << 1 | last->tzc << 2 |
                 (last->sk & 1) << 3 | (last->sk >> 1) << 4), bits);
@@ -316,7 +332,7 @@ int main(int argc, char **argv)
     double sum_err = 0, sum_err2 = 0; int n_err = 0;
     double fade_ph = 0, fade_a = 1;
     double xtal_ppm = 0, ref_t0 = -1; uint32_t ref_n0 = 0; int clock_wrong = 0; double first_sync = -1;
-    int n_conf = 0, conf_wrong = 0, no_confirm = 0; frame_info_t last_fi; int have_last = 0;
+    int n_conf = 0, conf_wrong = 0, no_confirm = 0, cr, n_presync = 0; frame_info_t last_fi, sfi; int have_last = 0;
 
     for (a = 1; a < argc; a++) {
         if (!strcmp(argv[a], "-t")) return selftest();
@@ -393,9 +409,11 @@ int main(int argc, char **argv)
                            tsec, dsp.cand.corr_q10 / 1024.0, fi.n3, d.year, d.mon, d.day, d.hour, d.min, d.sec,
                            fi.tz, fi.rs_fixed, fi.chase_flips, fi.sk1_fixed, fi.snr_db, RN[r],
                            tk.last_err_us, dsp_carrier_centihz(&dsp) / 100.0);
-            } else if (st == FR_UNCORRECTABLE && have_last && !no_confirm && confirm(&dsp, &tk, &last_fi, tick_base,
-                                                                                       ref_t0, ref_n0, tsec, &conf_wrong)) {
+            } else if (st == FR_UNCORRECTABLE && !no_confirm &&
+                       (cr = confirm(&dsp, &tk, have_last ? &last_fi : NULL, tick_base,
+                                     ref_t0, ref_n0, tsec, &conf_wrong, &sfi)) != 0) {
                 n_conf++;
+                if (cr == 2) { last_fi = sfi; have_last = 1; if (first_sync < 0) first_sync = tsec; n_presync++; }
             } else if (st == FR_NOT_TIME) {
                 n_nottime++;
             } else {
@@ -411,10 +429,10 @@ int main(int argc, char **argv)
         }
     }
     printf("SUMMARY snr=%g cand=%d time_ok=%d other=%d failed=%d accept=%d sync=%d step=%d cand=%d reject=%d "
-           "jitter_rms=%.0fus err_mean=%.0fus rate=%dppb first_sync=%.0fs clock_wrong=%d confirmed=%d confirm_wrong=%d\n",
+           "jitter_rms=%.0fus err_mean=%.0fus rate=%dppb first_sync=%.0fs clock_wrong=%d confirmed=%d confirm_wrong=%d presync=%d\n",
            snr, n_cand, n_ok, n_nottime, n_fail, n_tk[0], n_tk[1], n_tk[2], n_tk[3], n_tk[4],
            n_err ? sqrt(sum_err2 / n_err - (sum_err / n_err) * (sum_err / n_err)) : 0.0,
-           n_err ? sum_err / n_err : 0.0, tk_rate_ppb(&tk), first_sync, clock_wrong, n_conf, conf_wrong);
+           n_err ? sum_err / n_err : 0.0, tk_rate_ppb(&tk), first_sync, clock_wrong, n_conf, conf_wrong, n_presync);
     free(all);
     return 0;
 }

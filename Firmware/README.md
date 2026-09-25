@@ -55,7 +55,8 @@ At 0 dB, one in five frames the original accepts carries a wrong time.
   Once synchronised, a frame that still cannot be decoded is compared with
   the frame the clock expects at that moment; if its soft bits agree (≥ 0.80)
   it is used for timing only. On the recordings this nearly triples the
-  timing updates at -3 dB.
+  timing updates at -3 dB. Before the first sync, one decoded frame plus two
+  later frames that match its predictions are enough to set the clock.
 * **Timekeeper** (`src/core/timekeeper.c`): a new time is accepted only if it
   matches the running clock (±100 ms). Before the first sync **two frames must
   agree with each other** before anything is set; to step a running clock that
