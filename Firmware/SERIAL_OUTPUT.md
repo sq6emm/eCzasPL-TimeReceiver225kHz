@@ -42,7 +42,7 @@ The uptime is counted by the ADC sample clock since power-up, in seconds with
 #### BOOT / RADIO – start-up
 
 ```
-[     0.0] BOOT    e-CzasPL 225 kHz receiver, firmware 2.0.1 (Sep 25 2026)
+[     0.0] BOOT    e-CzasPL 225 kHz receiver, firmware 2.0.2 (Sep 25 2026)
 [     0.0] BOOT    SV1: diagnostics, SV2: NMEA ... LED4 1PPS
 SI4735: part 23 fw 60 chip D lib 7
 SI4735: loading SSB patch... done
@@ -68,18 +68,20 @@ The `SI4735:` lines have no timestamp. They come from the radio driver:
 * `RADIO   SI4735 not responding - reinitialising` means three periodic status
   reads in a row failed, so the radio is reset and set up again.
 
-#### SIGNAL – audio level, carrier and radio (use this to set R27)
+#### SIGNAL – audio level, volume, carrier and radio
 
 Printed every second for the first 3 minutes after power-up, then every 10 s.
 
 ```
-[    41.0] SIGNAL  level  54% [##########----------] OK, centre 1% | carrier 1004.37 Hz (+4.37) locked, '0' bits at -33 deg, noise 6 deg | radio RSSI 38 dBuV SNR 21 dB
+[    41.0] SIGNAL  level  54% [##########----------] OK, volume 48/63, centre 1% | carrier 1004.37 Hz (+4.37) locked, '0' bits at -33 deg, noise 6 deg | radio RSSI 38 dBuV SNR 21 dB
 ```
 
 | Field | Meaning |
 |---|---|
 | `level 54%` | peak-to-peak ADC signal since the previous SIGNAL line, as % of the full ADC range. The bar shows the same value, one `#` per 5 %. |
-| advice | `CLIPPING (n samples) - decrease gain R27`: n samples were within 1 % of full scale. `NO/VERY LOW AUDIO` < 10 %. `low` 10–30 %. `OK` 30–85 %. `high` > 85 %. |
+| `level 54%` in 2.0.2+ | the highest one-second level since the previous SIGNAL line. |
+| state | `CLIPPING (n samples)`: n samples were within 1 % of full scale. `NO/VERY LOW AUDIO` < 10 %. `low` 10–30 %. `OK` 30–85 %. `high` > 85 %. |
+| `volume 48/63` | SI4735 audio volume set by the level control (2.0.2+): stepped down by 3 when a second has more than 2 clipped samples, by 1 above 85 %, up by 1 after 5 s below 40 %; range 10…63. Followed by `- decrease gain R27` when it still clips at volume 10, or `- increase gain R27` when it is still below 30 % at 63. |
 | `centre 1%` | midpoint between the highest and lowest sample, in % of half range. This is the DC bias of the op-amp stage (R17/R19 divider). It should be within about ±5 %. A large value means one side clips first. |
 | `carrier 1004.37 Hz (+4.37)` | frequency of the 225 kHz carrier as seen in the audio, and its offset from the nominal 1000 Hz. The offset is the SI4735 crystal error. A few Hz is normal. It should drift only slowly with temperature. |
 | PLL state | `searching carrier` – measuring the frequency (1 s steps). `locking (fast)`, `locking` – the carrier loop is settling, about 3 s each. `locked` – normal operation. |
@@ -88,10 +90,11 @@ Printed every second for the first 3 minutes after power-up, then every 10 s.
 | `radio RSSI 38 dBuV SNR 21 dB` | the SI4735's own signal strength and SNR at 224 kHz (AM_RSQ_STATUS). `radio NOT RESPONDING` means the I²C read failed. |
 
 **Adjusting R27:** R27 is the feedback resistor of the MCP607 inverting
-amplifier (gain = R27 / 18 kΩ). Turn it until `level` sits in the `OK` range,
-ideally 40–70 %, and `CLIPPING` never appears. The broadcast audio makes the
-level move a bit. The SI4735 AGC keeps it roughly constant, so one adjustment
-is enough.
+amplifier (gain = R27 / 18 kΩ). From 2.0.2 the firmware keeps the level in
+range with the SI4735 volume, so R27 needs turning only when the SIGNAL line
+asks for it (volume at its limit). Firmware 2.0.0/2.0.1 has no level control:
+turn R27 until `level` sits in the `OK` range, ideally 40–70 %, and `CLIPPING`
+never appears.
 
 #### FRAME – every time frame heard
 

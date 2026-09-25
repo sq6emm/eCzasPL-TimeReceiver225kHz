@@ -1,11 +1,11 @@
-# e-CzasPL 225 kHz receiver – new firmware (2.0.1)
+# e-CzasPL 225 kHz receiver – new firmware (2.0.2)
 
 A from-scratch firmware for the simplified receiver (dsPIC33FJ128GP804 + SI4735)
 in this repository. It is a drop-in replacement for `uproszczony_odbiornik.hex`:
 same board, same connectors, same `$GPRMC` format.
 
-* `eczas_receiver_2.0.1.hex` – ready to program (MPLAB IPE, device dsPIC33FJ128GP804)
-* `eczas_receiver_2.0.1_64MC804.hex` – the same for boards fitted with a
+* `eczas_receiver_2.0.2.hex` – ready to program (MPLAB IPE, device dsPIC33FJ128GP804)
+* `eczas_receiver_2.0.2_64MC804.hex` – the same for boards fitted with a
   dsPIC33FJ64MC804 (same pinout; check the marking on the chip, the programmer
   reports an invalid device ID if the wrong device is selected)
 * `uproszczony_odbiornik.hex` – the original firmware, unchanged
@@ -92,11 +92,14 @@ the SI4735 audio output and the ADC (gain = R27 / 18 k). For the first three
 minutes after power-up a `SIGNAL` line is printed every second:
 
 ```
-[    41.0] SIGNAL  level  54% [##########----------] OK, centre 1% | carrier 1004.37 Hz (+4.37) locked, '0' bits at -33 deg, noise 6 deg | radio RSSI 38 dBuV SNR 21 dB
+[    41.0] SIGNAL  level  54% [##########----------] OK, volume 48/63, centre 1% | carrier 1004.37 Hz (+4.37) locked, '0' bits at -33 deg, noise 6 deg | radio RSSI 38 dBuV SNR 21 dB
 ```
 
-Turn R27 until the level is 30–85 % and never shows `CLIPPING`. The SI4735's
-AGC keeps the level roughly constant, so this is done once. Other lines:
+Since 2.0.2 the firmware sets the level itself: once a second it turns the
+SI4735 audio volume (which feeds the MCP607) down while the ADC clips or the
+level is above 85 %, and up while it stays below 40 %. R27 only needs turning
+when the line ends with `- decrease gain R27` (still clipping at the lowest
+volume) or `- increase gain R27` (still low at full volume). Other lines:
 
 ```
 [   603.2] FRAME   #57 corr 0.86 snr 12 dB, fixed 1 symbol(s): 2026-08-13 19:21:48 UTC (21:21:48 local, UTC+2)
@@ -164,7 +167,7 @@ the datasheet so far.
 
 ## License
 
-The new firmware (`src/`, `host/`, `eczas_receiver_2.0.1*.hex`) is released
+The new firmware (`src/`, `host/`, `eczas_receiver_2.0.2*.hex`) is released
 under the MIT License in `../LICENSE`, like the rest of this repository. It is
 derived in part from e-CzasPL's original firmware (`uproszczony_odbiornik.hex`,
 © 2024 e-CzasPL, MIT): the SI4735 set-up sequence and, for the host-side
@@ -172,7 +175,7 @@ comparison model only, the original filter coefficients
 (`host/tools/orig_fir_tables.json`) were recovered from it.
 
 **Exception: the SI4735 SSB patch** (`src/hw/si4735_patch.c`, and the copy
-of it inside the `eczas_receiver_2.0.1*.hex` files) is **not** covered by the MIT
+of it inside the `eczas_receiver_2.0.2*.hex` files) is **not** covered by the MIT
 License. It is firmware for the SI4735's internal DSP and is the property of
 Silicon Labs (now Skyworks Solutions). Silicon Labs has not published it or
 put it under a public license. The same patch is distributed with the

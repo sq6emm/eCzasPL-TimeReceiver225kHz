@@ -2,7 +2,7 @@
  * e-CzasPL 225 kHz time receiver firmware - main loop.
  *
  * SV1 (UART1, 115200 8N1): human readable diagnostics, one event per line:
- *   [   123.4] SIGNAL  audio level, carrier, radio RSSI/SNR, R27 advice
+ *   [   123.4] SIGNAL  audio level and volume, carrier, radio RSSI/SNR, R27 advice
  *   [   123.4] FRAME   every time frame heard and how it was decoded
  *   [   123.4] CLOCK   synchronisation / step / rejected-frame events
  *   [   123.4] STATUS  every STATUS_PERIOD_S seconds
@@ -75,32 +75,61 @@ static uint16_t build_pggum(char *out, const frame_info_t *fi, uint32_t age)
     return (uint16_t)(p - out);
 }
 
-/* ---- audio level / signal report ---------------------------------------- */
+/* ---- audio level control and signal report -------------------------------- */
+
+/* worst level / clip count over the last report period */
+static uint16_t rep_pct, rep_clip;
+static int16_t rep_centre;               /* last second, % of full range */
+static uint8_t lvl_low_s;
+
+/* once a second: measure the ADC swing and step the SI4735 volume */
+static void level_control(void)
+{
+    int32_t pp = (int32_t)g_dsp.adc_max - g_dsp.adc_min;   /* 65536 = full range */
+    uint16_t pct = (uint16_t)(pp * 100 / 65536), clip = g_dsp.adc_clip;
+    uint8_t v = si4735_volume(), nv = v;
+
+    rep_centre = (int16_t)(((int32_t)g_dsp.adc_max + g_dsp.adc_min) * 50 / 32768);
+    dsp_level_reset(&g_dsp);
+    if (pct > rep_pct) rep_pct = pct;
+    rep_clip += clip;
+
+    if (clip > LEVEL_CLIP_MAX)       nv = v > VOL_MIN + 2 ? v - 3 : VOL_MIN;
+    else if (pct > LEVEL_HIGH_PCT)   nv = v > VOL_MIN ? v - 1 : VOL_MIN;
+    if (pct < LEVEL_LOW_PCT && !clip) {
+        if (++lvl_low_s >= LEVEL_UP_S) { lvl_low_s = 0; if (v < 63) nv = v + 1; }
+    } else {
+        lvl_low_s = 0;
+    }
+    if (nv != v) si4735_set_volume(nv);
+}
 
 static void signal_report(void)
 {
     static const char *PLL[] = { "searching carrier", "locking (fast)", "locking", "locked" };
     si4735_rsq_t q;
-    int16_t mn = g_dsp.adc_min, mx = g_dsp.adc_max;
-    uint16_t clip = g_dsp.adc_clip;
-    int32_t pp = (int32_t)mx - mn;                    /* peak-to-peak, 65536 = full range */
-    uint16_t pct = (uint16_t)(pp * 100 / 65536);
+    uint16_t pct = rep_pct, clip = rep_clip;
+    uint8_t vol = si4735_volume();
     int32_t f = dsp_carrier_centihz(&g_dsp), df = f - AUDIO_CARRIER_HZ * 100L;
     char bar[21];
     uint8_t i;
 
-    dsp_level_reset(&g_dsp);
+    rep_pct = 0;
+    rep_clip = 0;
     for (i = 0; i < 20; i++) bar[i] = (i < pct / 5) ? '#' : '-';
     bar[20] = 0;
 
     log_head("SIGNAL");
     dbg_printf("level %3u%% [%s] ", pct, bar);
-    if (clip)            dbg_printf("CLIPPING (%u samples) - decrease gain R27", clip);
-    else if (pct < 10)   dbg_puts("NO/VERY LOW AUDIO - check SI4735, increase gain R27");
-    else if (pct < 30)   dbg_puts("low - increase gain R27");
+    if (clip)            dbg_printf("CLIPPING (%u samples)", clip);
+    else if (pct < 10)   dbg_puts("NO/VERY LOW AUDIO");
+    else if (pct < 30)   dbg_puts("low");
     else if (pct <= 85)  dbg_puts("OK");
-    else                 dbg_puts("high - decrease gain R27 a little");
-    dbg_printf(", centre %d%%", (int)(((int32_t)mx + mn) * 50 / 32768));
+    else                 dbg_puts("high");
+    dbg_printf(", volume %u/63", vol);
+    if (clip > LEVEL_CLIP_MAX && vol <= VOL_MIN) dbg_puts(" - decrease gain R27");
+    else if (pct < 30 && vol >= 63)              dbg_puts(pct < 10 ? " - check SI4735, increase gain R27" : " - increase gain R27");
+    dbg_printf(", centre %d%%", (int)rep_centre);
     dbg_printf(" | carrier %ld.%02ld Hz (%c%ld.%02ld) %s", (long)(f / 100), (long)(f % 100),
                df < 0 ? '-' : '+', (long)((df < 0 ? -df : df) / 100), (long)((df < 0 ? -df : df) % 100),
                PLL[g_dsp.pll_state]);
@@ -250,7 +279,7 @@ static void status_report(void)
 
 int main(void)
 {
-    uint16_t last_sec_blk, last_sts_blk, last_lvl_blk;
+    uint16_t last_sec_blk, last_sts_blk, last_lvl_blk, last_alc_blk;
     uint8_t radio_fail = 0;
     int r, tries;
 
@@ -275,7 +304,7 @@ int main(void)
     log_head("RADIO");
     dbg_puts("tuned to 224 kHz USB, waiting for the 225 kHz carrier (1 kHz tone)\r\n");
 
-    last_sec_blk = last_sts_blk = last_lvl_blk = sampler_blocks16();
+    last_sec_blk = last_sts_blk = last_lvl_blk = last_alc_blk = sampler_blocks16();
     for (;;) {
         uint16_t b = sampler_blocks16();
         uint16_t level_period = sampler_blocks() < (uint64_t)LEVEL_FAST_S * DSP_RATE_HZ
@@ -307,6 +336,10 @@ int main(void)
             dbg_mirror_flush();
         }
 
+        if ((uint16_t)(b - last_alc_blk) >= DSP_RATE_HZ) {
+            last_alc_blk = b;
+            level_control();
+        }
         if ((uint16_t)(b - last_lvl_blk) >= level_period) {
             last_lvl_blk = b;
             signal_report();

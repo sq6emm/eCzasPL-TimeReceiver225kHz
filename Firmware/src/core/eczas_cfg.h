@@ -56,12 +56,23 @@
 /* Report the audio level every second for this long after power-up (to
  * adjust the gain trimmer R27), then every STATUS_PERIOD_S. */
 #define LEVEL_FAST_S      180
+
+/* Audio level control: once a second the SI4735 volume (0..63) is stepped
+ * down while the ADC clips or the level is above LEVEL_HIGH_PCT, and up while
+ * it stays below LEVEL_LOW_PCT for LEVEL_UP_S seconds. The demodulator uses
+ * only the carrier phase, so volume changes do not disturb it. R27 needs
+ * adjusting only when the volume sits at VOL_MIN or 63. */
+#define VOL_MIN           10
+#define LEVEL_HIGH_PCT    85
+#define LEVEL_LOW_PCT     40
+#define LEVEL_UP_S        5
+#define LEVEL_CLIP_MAX    2           /* clipped samples per second tolerated (atmospherics) */
 #define STATUS_PERIOD_S   10
 
 /* Position reported in $GPRMC (GUM Time and Frequency Laboratory, Warsaw). */
 #define NMEA_LAT          "5214.5098,N"
 #define NMEA_LON          "02100.0504,E"
 
-#define FW_VERSION        "2.0.1"
+#define FW_VERSION        "2.0.2"
 
 #endif
