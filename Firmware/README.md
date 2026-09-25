@@ -1,10 +1,13 @@
-# e-CzasPL 225 kHz receiver – new firmware (2.0.0)
+# e-CzasPL 225 kHz receiver – new firmware (2.0.1)
 
 A from-scratch firmware for the simplified receiver (dsPIC33FJ128GP804 + SI4735)
 in this repository. It is a drop-in replacement for `uproszczony_odbiornik.hex`:
 same board, same connectors, same `$GPRMC` format.
 
-* `eczas_receiver_2.0.0.hex` – ready to program (MPLAB IPE, device dsPIC33FJ128GP804)
+* `eczas_receiver_2.0.1.hex` – ready to program (MPLAB IPE, device dsPIC33FJ128GP804)
+* `eczas_receiver_2.0.1_64MC804.hex` – the same for boards fitted with a
+  dsPIC33FJ64MC804 (same pinout; check the marking on the chip, the programmer
+  reports an invalid device ID if the wrong device is selected)
 * `uproszczony_odbiornik.hex` – the original firmware, unchanged
 * `ORIGINAL_FIRMWARE_NOTES.md` – what the original does and why it shows wrong times
 * `SERIAL_OUTPUT.md` – how to connect to SV1/SV2 and what every line means,
@@ -128,6 +131,7 @@ make                 # -> build/eczas_receiver.hex
 make host-test       # codec/date self-test with the host C compiler
 ```
 
+`make MCU=33FJ64MC804` builds for a dsPIC33FJ64MC804.
 `XC16_DIR` can point at the compiler if it is not in `~/.local/microchip/xc16`
 or `/opt/microchip/xc16`. MPLAB X users can create a standalone project for
 dsPIC33FJ128GP804 and add all files under `src/`.
@@ -160,7 +164,7 @@ the datasheet so far.
 
 ## License
 
-The new firmware (`src/`, `host/`, `eczas_receiver_2.0.0.hex`) is released
+The new firmware (`src/`, `host/`, `eczas_receiver_2.0.1*.hex`) is released
 under the MIT License in `../LICENSE`, like the rest of this repository. It is
 derived in part from e-CzasPL's original firmware (`uproszczony_odbiornik.hex`,
 © 2024 e-CzasPL, MIT): the SI4735 set-up sequence and, for the host-side
@@ -168,7 +172,7 @@ comparison model only, the original filter coefficients
 (`host/tools/orig_fir_tables.json`) were recovered from it.
 
 **Exception: the SI4735 SSB patch** (`src/hw/si4735_patch.c`, and the copy
-of it inside `eczas_receiver_2.0.0.hex`) is **not** covered by the MIT
+of it inside the `eczas_receiver_2.0.1*.hex` files) is **not** covered by the MIT
 License. It is firmware for the SI4735's internal DSP and is the property of
 Silicon Labs (now Skyworks Solutions). Silicon Labs has not published it or
 put it under a public license. The same patch is distributed with the

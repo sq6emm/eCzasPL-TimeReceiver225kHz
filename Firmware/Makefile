@@ -1,4 +1,5 @@
 # e-CzasPL receiver firmware for dsPIC33FJ128GP804 (MPLAB XC16).
+# Boards fitted with a dsPIC33FJ64MC804 (same pinout): make MCU=33FJ64MC804
 #   make            -> build/eczas_receiver.hex
 #   make host-test  -> build and run the host test harness (gcc)
 XC16_DIR ?= $(firstword $(wildcard $(HOME)/.local/microchip/xc16/v*) $(wildcard /opt/microchip/xc16/v*))

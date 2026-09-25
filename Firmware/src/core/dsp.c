@@ -33,6 +33,8 @@ static const uint8_t PREAMBLE[PREAMBLE_BITS] = {
 static const int16_t KP[4]     = { 0, 5823, 2329, 1165 };
 static const int16_t KI_Q10[4] = { 0, 13250, 2120, 530 };
 #define FLL_BLOCKS      500     /* 1 s frequency estimate */
+#define FLL_SETTLE      65536   /* |correction| < 0.15 Hz (NCO units): hand over to the PLL */
+#define FLL_SHIFT       10      /* baseband scaling so 500 products fit in int64 */
 #define FAST_BLOCKS     1500
 #define MED_BLOCKS      1500
 #define FREQ_RANGE      17179869L   /* +-40 Hz in NCO units */
@@ -95,21 +97,35 @@ int16_t dsp_atan2(int32_t y, int32_t x)
     return (int16_t)a;
 }
 
-static void pll_update(dsp_t *d, int16_t ph)
+static void pll_update(dsp_t *d, int16_t ph, int32_t re, int32_t im)
 {
     int32_t err;
 
     if (d->pll_state == PLL_ACQ_FLL) {
-        /* average carrier rotation per block over 1 s -> frequency offset */
-        d->fll_acc += (int16_t)(ph - d->prev_ph);
-        d->prev_ph = ph;
+        /* carrier rotation per block = angle of sum z[n] * conj(z[n-1]) over 1 s;
+         * averaging the vectors (not the noisy angles) keeps the estimate usable
+         * well below 0 dB SNR */
+        re >>= FLL_SHIFT;
+        im >>= FLL_SHIFT;
+        d->fll_re += (int64_t)re * d->prev_re + (int64_t)im * d->prev_im;
+        d->fll_im += (int64_t)im * d->prev_re - (int64_t)re * d->prev_im;
+        d->prev_re = re;
+        d->prev_im = im;
         if (++d->pll_timer >= FLL_BLOCKS) {
-            /* per-sample NCO increment = mean step * 2^16 / DSP_BLOCK */
-            int64_t df = ((int64_t)d->fll_acc * 65536) / ((int64_t)FLL_BLOCKS * DSP_BLOCK);
-            d->nco_freq += (int32_t)df;
-            d->fll_acc = 0;
+            int64_t sr = d->fll_re, si = d->fll_im;
+            int32_t df;
+            while (sr > 0x3FFFFFFF || sr < -0x3FFFFFFF || si > 0x3FFFFFFF || si < -0x3FFFFFFF) {
+                sr >>= 1;
+                si >>= 1;
+            }
+            /* per-sample NCO increment = step per block * 2^16 / DSP_BLOCK */
+            df = (int32_t)dsp_atan2((int32_t)si, (int32_t)sr) * (65536 / DSP_BLOCK);
+            d->nco_freq += df;
+            if (d->nco_freq > d->nco_freq_nominal + FREQ_RANGE) d->nco_freq = d->nco_freq_nominal + FREQ_RANGE;
+            if (d->nco_freq < d->nco_freq_nominal - FREQ_RANGE) d->nco_freq = d->nco_freq_nominal - FREQ_RANGE;
+            d->fll_re = d->fll_im = 0;
             d->pll_timer = 0;
-            if (df < 2000 && df > -2000)       /* < 0.005 Hz change: settled */
+            if (df < FLL_SETTLE && df > -FLL_SETTLE)
                 d->pll_state = PLL_ACQ_FAST;
         }
         return;
@@ -147,8 +163,7 @@ static void pll_update(dsp_t *d, int16_t ph)
             if (++d->unlock_timer > UNLOCK_BLOCKS) {
                 d->pll_state = PLL_ACQ_FLL;
                 d->pll_timer = 0;
-                d->fll_acc = 0;
-                d->prev_ph = ph;
+                d->fll_re = d->fll_im = 0;
                 d->unlock_timer = 0;
                 d->nco_freq = d->nco_freq_nominal;
             }
@@ -274,7 +289,7 @@ void dsp_block(dsp_t *d, const int16_t *x)
     amp = ax > ay ? ax + (ay * 3 >> 3) : ay + (ax * 3 >> 3);
     d->amp_avg += (amp - d->amp_avg) >> 6;
 
-    pll_update(d, ph);
+    pll_update(d, ph, re, im);
 
     /* ring + running window sums for the correlator */
     d->block++;

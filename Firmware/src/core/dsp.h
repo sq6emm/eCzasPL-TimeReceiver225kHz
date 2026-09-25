@@ -39,8 +39,8 @@ typedef struct {
     /* PLL */
     pll_state_t pll_state;
     uint16_t pll_timer;          /* blocks spent in current state */
-    int32_t  fll_acc;            /* sum of block-to-block phase steps */
-    int16_t  prev_ph;
+    int64_t  fll_re, fll_im;     /* sum of z[n] * conj(z[n-1]) over the FLL window */
+    int32_t  prev_re, prev_im;   /* previous block's baseband sample (scaled) */
     int16_t  lvl0;               /* phase of a '0' bit relative to idle (negative) */
     int32_t  lock_err_avg;       /* IIR of |phase error| (x16) */
     uint16_t unlock_timer;

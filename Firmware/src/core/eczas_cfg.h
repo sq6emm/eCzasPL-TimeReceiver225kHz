@@ -62,6 +62,6 @@
 #define NMEA_LAT          "5214.5098,N"
 #define NMEA_LON          "02100.0504,E"
 
-#define FW_VERSION        "2.0.0"
+#define FW_VERSION        "2.0.1"
 
 #endif

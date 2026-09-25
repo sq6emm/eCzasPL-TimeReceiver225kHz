@@ -24,7 +24,7 @@ grep --line-buffered '^\$PECZ,' receiver.log | sed -E 's/^\$PECZ,//; s/\*[0-9A-F
 
 ---
 
-## Part 1 – new firmware (2.0.0)
+## Part 1 – new firmware (2.0.x)
 
 ### SV1: diagnostics
 
@@ -42,7 +42,7 @@ The uptime is counted by the ADC sample clock since power-up, in seconds with
 #### BOOT / RADIO – start-up
 
 ```
-[     0.0] BOOT    e-CzasPL 225 kHz receiver, firmware 2.0.0 (Sep 25 2026)
+[     0.0] BOOT    e-CzasPL 225 kHz receiver, firmware 2.0.1 (Sep 25 2026)
 [     0.0] BOOT    SV1: diagnostics, SV2: NMEA ... LED4 1PPS
 SI4735: part 23 fw 60 chip D lib 7
 SI4735: loading SSB patch... done
