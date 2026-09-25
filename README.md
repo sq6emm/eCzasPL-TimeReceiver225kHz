@@ -20,6 +20,7 @@
 </ul>
 <h2 id="en0">Changes</h2>
 <ul>
+  <li><b>2026-09-25:</b> <b>New firmware 2.0.0 (not yet tested on hardware)</b> in <code>Firmware/eczas_receiver_2.0.0.hex</code>, written from scratch for the same board. The original firmware never checks the frame CRC and copies every Reed-Solomon "success" into its clock, so it sometimes shows a wrong time. The new firmware checks the CRC, accepts a new time only if it matches the running clock or is confirmed by a second frame, decodes much weaker signals, and outputs a hardware-timed 1PPS. The original <code>uproszczony_odbiornik.hex</code> is still there, unchanged. Details: <code>Firmware/README.md</code>.</li>
   <li><b>2024-06-11:</b> Thanks to Damian Jabłoński, who found an error in the scheme. This caused the processor to operate unstablely. Resistor R2 20k (shown in the current schematic) should be added to fix the error.</li>
    <li><b>2024-06-12:</b> 
    The repository contains corrected versions of the project files in KiCAD. In the KiCAD/1.0/bom folder, you can find the interactive BOM in HTML. In the KiCAD/1.0/production folder, you can find production (Gerber) files for fixed PCB.
@@ -77,6 +78,7 @@ In the "Universal Serial Bus devices"<br><img section src="img/Picture2.png"><br
 
 <h2 id="pl0">Zmiany</h2>
 <ul>
+  <li><b>2026-09-25:</b> <b>Nowe oprogramowanie 2.0.0 (jeszcze nie przetestowane na sprzęcie)</b> w pliku <code>Firmware/eczas_receiver_2.0.0.hex</code>, napisane od nowa dla tej samej płytki. Oryginalne oprogramowanie nie sprawdza sumy CRC ramki i każdą "udaną" korekcję Reeda-Solomona wpisuje do zegara, przez co czasem pokazuje błędny czas. Nowe oprogramowanie sprawdza CRC, przyjmuje nowy czas tylko wtedy, gdy zgadza się z bieżącym zegarem lub potwierdza go druga ramka, dekoduje dużo słabsze sygnały i wystawia sprzętowo taktowany sygnał 1PPS. Oryginalny plik <code>uproszczony_odbiornik.hex</code> pozostaje bez zmian. Szczegóły: <code>Firmware/README.md</code>.</li>
   <li><b>2024-06-11:</b> Dziękuję Damianowi Jabłońskiemu, który znalazł błąd w schemacie i opracował poprawkę. Błąd skutkował niestabilną pracą procesora. Rozwiązaniem jest dolutowanie rezystora R2 między pinem 3 złącza SV2 a VDD rezystora 20k (R2). Poprawka naniesiona jest na aktualną wersję projektu w KiCAD</li>
    <li><b>2024-06-12:</b> Repozytorium zawiera poprawione pliki projektu. W folderze KiCAD/1.0/bom znajdziesz interaktywny BOM w HTML ułatwiający montaż, w foderze KiCAD/1.0/production są aktualne pliki produkcyjne (Gerber) poprawionego PCB - można je np. wysłać do produkcji (bez rozpakowania).
    </li>
