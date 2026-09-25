@@ -157,3 +157,24 @@ instruction set (simulator), build for the target. **Not yet run on the board.**
 The SI4735 initialisation copies the original byte for byte, but the
 peripheral code (ADC/DMA, output compare, UARTs) has only been checked against
 the datasheet so far.
+
+## License
+
+The new firmware (`src/`, `host/`, `eczas_receiver_2.0.0.hex`) is released
+under the MIT License in `../LICENSE`, like the rest of this repository. It is
+derived in part from e-CzasPL's original firmware (`uproszczony_odbiornik.hex`,
+© 2024 e-CzasPL, MIT): the SI4735 set-up sequence and, for the host-side
+comparison model only, the original filter coefficients
+(`host/tools/orig_fir_tables.json`) were recovered from it.
+
+**Exception: the SI4735 SSB patch** (`src/hw/si4735_patch.c`, and the copy
+of it inside `eczas_receiver_2.0.0.hex`) is **not** covered by the MIT
+License. It is firmware for the SI4735's internal DSP and is the property of
+Silicon Labs (now Skyworks Solutions). Silicon Labs has not published it or
+put it under a public license. The same patch is distributed with the
+[PU2CLR SI4735 Arduino library](https://github.com/pu2clr/SI4735) ecosystem
+and is embedded in e-CzasPL's original firmware; our copy was extracted
+byte for byte from `uproszczony_odbiornik.hex`, unchanged. It is included only
+so that the receiver works as before, for non-commercial use. If you are the
+rights holder and object to its distribution, please open an issue and it will
+be removed.

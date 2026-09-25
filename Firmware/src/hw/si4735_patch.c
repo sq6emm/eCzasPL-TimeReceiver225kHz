@@ -6,7 +6,9 @@
  * (Firmware/uproszczony_odbiornik.hex, PSV 0x19C0, 7735 bytes). Each line is
  * sent as one 8-byte I2C command: opcode 0x15 for the lines listed in
  * SI4735_PATCH_CMD15, opcode 0x16 otherwise, followed by 7 data bytes.
- * The patch content is Silicon Labs' property.
+ * The patch content is the property of Silicon Labs (now Skyworks Solutions)
+ * and is NOT covered by the MIT License of this repository; see the License
+ * section of Firmware/README.md.
  */
 #include "si4735.h"
 
