@@ -34,7 +34,8 @@ def one(args):
     out = subprocess.run(cmd + [f"{D}/rec/{rec}"], capture_output=True, text=True).stdout
     g = lambda k: float(re.search(k + r"=(-?[\d.e+]+)", out).group(1))
     return dict(ok=g("time_ok"), step=g("step"), reject=g("reject"), sync=g("first_sync"),
-                wrong=g("clock_wrong"), err=g("err_mean"))
+                wrong=g("clock_wrong"), err=g("err_mean"),
+                conf=g("confirmed") if "confirmed=" in out else 0, cwrong=g("confirm_wrong") if "confirm_wrong=" in out else 0)
 
 def run(sims, snrs, seeds):
     truth = json.load(open(f"{D}/truth.json"))
@@ -42,7 +43,7 @@ def run(sims, snrs, seeds):
             for name, sim in sims for snr in snrs}
     with ThreadPoolExecutor(30) as ex:
         res = {k: list(ex.map(one, v)) for k, v in jobs.items()}
-    print(f"{'build':14}{'SNR':>5}{'fixes':>7}{'wrong':>7}{'steps':>7}{'reject':>8}{'sync med s':>12}{'no sync':>9}{'|err| ms':>10}")
+    print(f"{'build':14}{'SNR':>5}{'fixes':>7}{'wrong':>7}{'steps':>7}{'reject':>8}{'sync med s':>12}{'no sync':>9}{'|err| ms':>10}{'confirmed':>11}{'c.wrong':>9}")
     for snr in snrs:
         for name, _ in sims:
             r = res[(name, snr)]
@@ -51,7 +52,8 @@ def run(sims, snrs, seeds):
             print(f"{name:14}{snr:>5}{sum(x['ok'] for x in r):>7.0f}{sum(x['wrong'] for x in r):>7.0f}"
                   f"{sum(x['step'] for x in r):>7.0f}{sum(x['reject'] for x in r):>8.0f}"
                   f"{(st.median(syncs) if syncs else float('nan')):>12.0f}{len(r) - len(syncs):>9}"
-                  f"{(st.median(errs) if errs else float('nan')):>10.2f}")
+                  f"{(st.median(errs) if errs else float('nan')):>10.2f}"
+                  f"{sum(x['conf'] for x in r):>11.0f}{sum(x['cwrong'] for x in r):>9.0f}")
 
 if __name__ == "__main__":
     if sys.argv[1] == "prep": prep(sys.argv[2], *sys.argv[3:4])

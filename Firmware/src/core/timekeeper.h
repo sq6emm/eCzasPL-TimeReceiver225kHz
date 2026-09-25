@@ -62,6 +62,10 @@ int      tk_time(const tk_t *t, int64_t tick, uint32_t *sec, uint32_t *usec);
 int64_t  tk_second_tick(const tk_t *t, uint32_t sec);
 /* Synchronised and last good frame less than HOLDOVER_VALID_S ago. */
 int      tk_valid(const tk_t *t, int64_t now_tick);
+/* Frame number (3 s periods) the clock expects for a frame starting at
+ * frame_tick, if that tick lies within the acceptance window of a frame
+ * start; 0 if not synchronised or outside the window. */
+int      tk_expected_n3(const tk_t *t, int64_t frame_tick, uint32_t *n3);
 /* Clock rate error in parts per billion relative to nominal FCY. */
 int32_t  tk_rate_ppb(const tk_t *t);
 

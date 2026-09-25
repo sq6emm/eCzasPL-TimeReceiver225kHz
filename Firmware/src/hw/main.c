@@ -30,7 +30,9 @@
 static tk_t tk;
 static char pending_extra[64];
 static uint16_t pending_extra_len;
-static uint32_t n_heard, n_undecodable;
+static uint32_t n_heard, n_undecodable, n_confirmed;
+static frame_info_t last_fi;               /* last frame the clock accepted */
+static uint8_t have_last_fi;
 
 static int64_t now_tick(void)
 {
@@ -160,6 +162,39 @@ static void handle_candidate(void)
     log_head("FRAME");
     dbg_printf("#%lu corr %d.%02d ", (unsigned long)n_heard, c->corr_q10 / 1024,
                (int)((int32_t)(c->corr_q10 % 1024) * 100 / 1024));   /* int is 16 bits here */
+    if (st == FR_UNCORRECTABLE && have_last_fi) {
+        /* synchronised: compare with the frame the clock expects now */
+        uint32_t n3p;
+        if (tk_expected_n3(&tk, tick, &n3p)) {
+            uint8_t bits[FRAME_BITS];
+            int32_t tq = 0;
+            int16_t sc;
+            frame_build(n3p, last_fi.tz, (uint8_t)(last_fi.ls | last_fi.lss << 1 | last_fi.tzc << 2 |
+                        (last_fi.sk & 1) << 3 | (last_fi.sk >> 1) << 4), bits);
+            sc = frame_confirm(c->ph + CAND_PRE, bits, &tq);
+            if (sc >= CONFIRM_MIN_Q10) {
+                frame_info_t fe = last_fi;
+                tk_result_t r;
+                fe.n3 = n3p;
+                r = tk_frame(&tk, tick + (int64_t)tq * TICKS_PER_BLOCK / 32768, &fe);
+                n_confirmed++;
+                dbg_printf("- not decodable, but %d.%02d of it agrees with the expected frame (snr %d dB): ",
+                           sc / 1024, (int)((int32_t)(sc % 1024) * 100 / 1024), fi.snr_db);
+                put_date(3UL * n3p, fe.tz);
+                dbg_puts("\r\n");
+                log_head("CLOCK");
+                if (r == TK_ACCEPTED) {
+                    dbg_puts("confirmed, error ");
+                    put_signed_ms(tk.last_err_us);
+                    dbg_printf(", xtal %+ld ppb\r\n", (long)tk_rate_ppb(&tk));
+                } else {
+                    dbg_puts("confirmation outside the window, ignored\r\n");
+                }
+                g_dsp.cand_ready = 0;
+                return;
+            }
+        }
+    }
     if (st != FR_OK) {
         n_undecodable++;
         dbg_printf("- not decodable (%s, snr %d dB)\r\n",
@@ -214,6 +249,8 @@ static void handle_candidate(void)
             break;
         }
         if (r == TK_ACCEPTED || r == TK_SYNCED || r == TK_STEPPED) {
+            last_fi = fi;
+            have_last_fi = 1;
             g_led1_on_pps = 1;
             if (!pending_extra_len)
                 pending_extra_len = build_pggum(pending_extra, &fi, age);
@@ -269,9 +306,9 @@ static void status_report(void)
     } else {
         dbg_puts("no time yet");
     }
-    dbg_printf(" | frames heard %lu, undecodable %lu, accepted %lu, rejected %lu, steps %lu",
+    dbg_printf(" | frames heard %lu, undecodable %lu, accepted %lu (%lu by matching the expected frame), rejected %lu, steps %lu",
                (unsigned long)n_heard, (unsigned long)n_undecodable, (unsigned long)tk.n_ok,
-               (unsigned long)tk.n_bad, (unsigned long)tk.n_steps);
+               (unsigned long)n_confirmed, (unsigned long)tk.n_bad, (unsigned long)tk.n_steps);
     if (g_pps.missed || dbg_dropped())
         dbg_printf(" | PPS missed %u, log dropped %u", g_pps.missed, dbg_dropped());
     dbg_puts("\r\n");

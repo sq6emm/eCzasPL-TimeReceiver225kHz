@@ -220,6 +220,20 @@ tk_result_t tk_frame(tk_t *t, int64_t frame_tick, const frame_info_t *fi)
     return r;
 }
 
+int tk_expected_n3(const tk_t *t, int64_t tick, uint32_t *n3)
+{
+    uint32_t sec, usec, n;
+    int64_t err;
+    if (!tk_time(t, tick, &sec, &usec)) return 0;
+    n = sec / 3;
+    if ((uint32_t)(sec % 3) * 1000000UL + usec > 1500000UL) n++;   /* nearest frame start */
+    err = tick - LATENCY_TICKS - tk_second_tick(t, 3UL * n);
+    if (err > (int64_t)SYNC_MAX_ERR_MS * TICKS_PER_MS || -err > (int64_t)SYNC_MAX_ERR_MS * TICKS_PER_MS)
+        return 0;
+    *n3 = n;
+    return 1;
+}
+
 void tk_maintain(tk_t *t, int64_t now_tick)
 {
     uint32_t sec;

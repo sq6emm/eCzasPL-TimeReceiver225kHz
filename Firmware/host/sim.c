@@ -11,6 +11,7 @@
  *     -r T0 N0    truth: the frame starting at T0 seconds is number N0 (3 s
  *                 periods); every frame the timekeeper accepts is checked
  *                 against it and wrong ones are counted ("clock_wrong")
+ *     -C          no expected-frame confirmation of undecodable frames
  *     -q          summary only
  *   sim -t        codec / date self-test, captured-frame regression
  */
@@ -279,6 +280,25 @@ static int selftest(void)
     return fails || wrong > 20;
 }
 
+/* The firmware's expected-frame confirmation (main.c handle_candidate). */
+static int confirm(dsp_t *dsp, tk_t *tk, const frame_info_t *last, int64_t tick,
+                   double ref_t0, uint32_t ref_n0, double tsec, int *wrong)
+{
+    uint32_t n3p;
+    uint8_t bits[FRAME_BITS];
+    int32_t tq = 0;
+    frame_info_t fe;
+    if (!tk_expected_n3(tk, tick, &n3p)) return 0;
+    frame_build(n3p, last->tz, (uint8_t)(last->ls | last->lss << 1 | last->tzc << 2 |
+                (last->sk & 1) << 3 | (last->sk >> 1) << 4), bits);
+    if (frame_confirm(dsp->cand.ph + CAND_PRE, bits, &tq) < CONFIRM_MIN_Q10) return 0;
+    fe = *last;
+    fe.n3 = n3p;
+    if (tk_frame(tk, tick + (int64_t)tq * TICKS_PER_BLOCK / 32768, &fe) != TK_ACCEPTED) return 0;
+    if (ref_t0 >= 0 && n3p != ref_n0 + (uint32_t)lround((tsec - ref_t0) / 3.0)) (*wrong)++;
+    return 1;
+}
+
 int main(int argc, char **argv)
 {
     static dsp_t dsp;
@@ -296,6 +316,7 @@ int main(int argc, char **argv)
     double sum_err = 0, sum_err2 = 0; int n_err = 0;
     double fade_ph = 0, fade_a = 1;
     double xtal_ppm = 0, ref_t0 = -1; uint32_t ref_n0 = 0; int clock_wrong = 0; double first_sync = -1;
+    int n_conf = 0, conf_wrong = 0, no_confirm = 0; frame_info_t last_fi; int have_last = 0;
 
     for (a = 1; a < argc; a++) {
         if (!strcmp(argv[a], "-t")) return selftest();
@@ -305,6 +326,7 @@ int main(int argc, char **argv)
         else if (!strcmp(argv[a], "-s")) rng_state ^= (uint64_t)atoll(argv[++a]) * 0x9E3779B97F4A7C15ULL;
         else if (!strcmp(argv[a], "-x")) xtal_ppm = atof(argv[++a]);
         else if (!strcmp(argv[a], "-r")) { ref_t0 = atof(argv[++a]); ref_n0 = (uint32_t)atol(argv[++a]); }
+        else if (!strcmp(argv[a], "-C")) no_confirm = 1;
         else if (!strcmp(argv[a], "-q")) quiet = 1;
         else path = argv[a];
     }
@@ -348,11 +370,14 @@ int main(int argc, char **argv)
                 tick = ((int64_t)(dsp.cand.start_block - 1) * DSP_BLOCK) * TICKS_PER_SAMPLE
                      + (int64_t)dsp.cand.frac_q15 * TICKS_PER_BLOCK / 32768;
             tick += (int64_t)((double)tick * xtal_ppm * 1e-6);   /* receiver crystal error */
+            int64_t tick_base = ((int64_t)(dsp.cand.start_block - 1) * DSP_BLOCK) * TICKS_PER_SAMPLE;
+            tick_base += (int64_t)((double)tick_base * xtal_ppm * 1e-6);
             double tsec = (double)tick / FCY_HZ;
             n_cand++;
             if (st == FR_OK) {
                 tk_result_t r = tk_frame(&tk, tick, &fi);
                 if (r == TK_ACCEPTED || r == TK_SYNCED || r == TK_STEPPED) {
+                    last_fi = fi; have_last = 1;
                     if (first_sync < 0) first_sync = tsec;
                     if (ref_t0 >= 0 && fi.n3 != ref_n0 + (uint32_t)lround((tsec - ref_t0) / 3.0)) clock_wrong++;
                 }
@@ -368,6 +393,9 @@ int main(int argc, char **argv)
                            tsec, dsp.cand.corr_q10 / 1024.0, fi.n3, d.year, d.mon, d.day, d.hour, d.min, d.sec,
                            fi.tz, fi.rs_fixed, fi.chase_flips, fi.sk1_fixed, fi.snr_db, RN[r],
                            tk.last_err_us, dsp_carrier_centihz(&dsp) / 100.0);
+            } else if (st == FR_UNCORRECTABLE && have_last && !no_confirm && confirm(&dsp, &tk, &last_fi, tick_base,
+                                                                                       ref_t0, ref_n0, tsec, &conf_wrong)) {
+                n_conf++;
             } else if (st == FR_NOT_TIME) {
                 n_nottime++;
             } else {
@@ -383,10 +411,10 @@ int main(int argc, char **argv)
         }
     }
     printf("SUMMARY snr=%g cand=%d time_ok=%d other=%d failed=%d accept=%d sync=%d step=%d cand=%d reject=%d "
-           "jitter_rms=%.0fus err_mean=%.0fus rate=%dppb first_sync=%.0fs clock_wrong=%d\n",
+           "jitter_rms=%.0fus err_mean=%.0fus rate=%dppb first_sync=%.0fs clock_wrong=%d confirmed=%d confirm_wrong=%d\n",
            snr, n_cand, n_ok, n_nottime, n_fail, n_tk[0], n_tk[1], n_tk[2], n_tk[3], n_tk[4],
            n_err ? sqrt(sum_err2 / n_err - (sum_err / n_err) * (sum_err / n_err)) : 0.0,
-           n_err ? sum_err / n_err : 0.0, tk_rate_ppb(&tk), first_sync, clock_wrong);
+           n_err ? sum_err / n_err : 0.0, tk_rate_ppb(&tk), first_sync, clock_wrong, n_conf, conf_wrong);
     free(all);
     return 0;
 }

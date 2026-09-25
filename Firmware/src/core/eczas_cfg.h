@@ -92,6 +92,15 @@
 #define GMD_MAX_ERASURES  4
 #endif
 
+/* Once synchronised, a frame that cannot be decoded is compared with the
+ * frame the clock expects at that moment (number, time zone and flags from
+ * the last good frame). If at least this share of its soft bits agrees
+ * (1/1024), it counts as a timing update; it can never set a new time.
+ * Undecodable true frames score ~0.85-0.95, a wrong frame number <= 0.69. */
+#ifndef CONFIRM_MIN_Q10
+#define CONFIRM_MIN_Q10   820
+#endif
+
 #define FW_VERSION        "2.0.3"
 
 #endif

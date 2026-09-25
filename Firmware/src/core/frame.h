@@ -40,6 +40,7 @@ typedef struct {
 } frame_info_t;
 
 frame_status_t frame_decode(const int16_t *ph, frame_info_t *out);
+int16_t frame_confirm(const int16_t *ph, const uint8_t bits[FRAME_BITS], int32_t *timing_q15); /* 1024 = full agreement */
 
 /* Exposed for tests / encoder */
 uint8_t frame_crc8(const uint8_t *bits40);

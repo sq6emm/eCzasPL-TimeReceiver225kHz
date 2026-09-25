@@ -118,6 +118,7 @@ services on the carrier (Enea lighting control etc.) are ignored silently.
 | `leap second insertion/removal announced`, `DST change announced`, `transmitter maintenance planned (1/2/3)` | the announcement bits of the frame (maintenance: 1 = one day, 2 = a week, 3 = more than a week) |
 | `not decodable (no modulation)` | the preamble matched but the phase levels were not separable |
 | `not decodable (too many bit errors)` | RS + CRC failed, also after the soft retries |
+| `not decodable, but 0.91 of it agrees with the expected frame` | (2.0.3+, only while synchronised) the frame could not be decoded, but its soft bits agree with the frame the clock expects at that moment (number, time zone and flags of the last good frame) at least 0.80. It is then used for timing, like a decoded frame, and followed by `CLOCK confirmed, error ...`. It can never set or step the time. |
 
 Every decoded frame is followed by a CLOCK line and a RAW line.
 
@@ -165,7 +166,7 @@ The meaning of every field is documented in `src/core/frame.h`.
 | time | current time of the receiver's clock, or `no time yet` |
 | `VALID` / `HOLDOVER (>24 h, not valid)` | VALID while the last good frame is less than 24 h old (LED3 on, `$GPRMC` status `A`). After that the clock keeps running on the measured crystal rate but is marked not valid. |
 | `last good frame` | seconds since the last accepted frame |
-| counters | since power-up. `frames heard` = time frames detected. `undecodable` = RS/CRC failed. `accepted` = agreed with the clock. `rejected` = decoded but disagreed. `steps` = clock corrections by two agreeing frames. The first frames (candidate, synchronising) are in neither accepted nor rejected. |
+| counters | since power-up. `frames heard` = time frames detected. `undecodable` = RS/CRC failed. `accepted` = agreed with the clock. `rejected` = decoded but disagreed. `steps` = clock corrections by two agreeing frames. The first frames (candidate, synchronising) are in neither accepted nor rejected. `accepted` includes the frames confirmed by matching the expected frame, shown in brackets (2.0.3+). |
 | `PPS missed N` | (shown only if non-zero) a PPS edge could not be scheduled in time |
 | `log dropped N` | (shown only if non-zero) characters dropped because the SV1 buffer was full |
 

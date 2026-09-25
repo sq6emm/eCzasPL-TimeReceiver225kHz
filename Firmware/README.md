@@ -52,6 +52,10 @@ At 0 dB, one in five frames the original accepts carries a wrong time.
   errors-and-erasures RS decoding with the 2 or 4 least reliable symbols
   erased, and a fine timing estimate from all 96 bits. Every retry only
   proposes a frame; the CRC and the timekeeper decide.
+  Once synchronised, a frame that still cannot be decoded is compared with
+  the frame the clock expects at that moment; if its soft bits agree (≥ 0.80)
+  it is used for timing only. On the recordings this nearly triples the
+  timing updates at -3 dB.
 * **Timekeeper** (`src/core/timekeeper.c`): a new time is accepted only if it
   matches the running clock (±100 ms). Before the first sync **two frames must
   agree with each other** before anything is set; to step a running clock that

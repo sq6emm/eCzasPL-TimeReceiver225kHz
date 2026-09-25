@@ -408,10 +408,37 @@ static void map_detect(const int16_t *ph, int32_t l1, int32_t l0, int32_t *llr)
     }
 }
 
+/* Agreement of the received phase with one given (expected) frame:
+ * sum(llr * sign(bit)) / sum(|llr|) over the 69 bits after the preamble,
+ * in 1/1024 (1024 = every bit agrees, 0 = chance). With timing_q15 != NULL
+ * also the fine frame-start estimate against that frame. */
+/* soft bits, shared by frame_confirm() and frame_decode() (never nested) */
+static int32_t llr[FRAME_BITS];
+
+int16_t frame_confirm(const int16_t *ph, const uint8_t bits[FRAME_BITS], int32_t *timing_q15)
+{
+    int32_t endv, s1 = 0, s0 = 0, n1 = 0, n0 = 0;
+    int64_t num = 0, den = 0;
+    int k;
+    for (k = 0; k < PREAMBLE_BITS; k++) {
+        const int16_t *p = ph + k * SPB + SPB - 3;
+        endv = (int32_t)p[0] + p[1] + p[2];
+        if (PREAMBLE[k]) { s1 += endv; n1++; } else { s0 += endv; n0++; }
+    }
+    s1 /= n1; s0 /= n0;
+    if (s1 - s0 < 3 * PH_10DEG) return 0;
+    map_detect(ph, s1 / 3, s0 / 3, llr);
+    for (k = PREAMBLE_BITS; k < FRAME_BITS; k++) {
+        num += bits[k] ? llr[k] : -llr[k];
+        den += llr[k] < 0 ? -llr[k] : llr[k];
+    }
+    if (timing_q15) *timing_q15 = refine_timing(ph, bits, s1 / 3, s0 / 3);
+    return den ? (int16_t)(num * 1024 / den) : 0;
+}
+
 frame_status_t frame_decode(const int16_t *ph, frame_info_t *out)
 {
     int32_t endv[PREAMBLE_BITS];
-    static int32_t llr[FRAME_BITS];
     int32_t s1 = 0, s0 = 0, n1 = 0, n0 = 0, var = 0;
     uint8_t bits[FRAME_BITS], work[FRAME_BITS];
     uint8_t weak[CHASE_BITS];
