@@ -32,6 +32,8 @@ static const uint8_t PREAMBLE[PREAMBLE_BITS] = {
  * damping 0.707, update rate 500 Hz. */
 static const int16_t KP[4]     = { 0, 5823, 2329, 1165 };
 static const int16_t KI_Q10[4] = { 0, 13250, 2120, 530 };
+#define KP_QUIET        1398        /* tracking at 1.2 Hz while the loop noise is low */
+#define KI_QUIET_Q10    763L
 #define FLL_BLOCKS      500     /* 1 s frequency estimate */
 #define FLL_SETTLE      65536   /* |correction| < 0.15 Hz (NCO units): hand over to the PLL */
 #define FLL_SHIFT       10      /* baseband scaling so 500 products fit in int64 */
@@ -150,8 +152,15 @@ static void pll_update(dsp_t *d, int16_t ph, int32_t re, int32_t im)
         }
     }
 
-    d->nco_phase += (uint32_t)((int32_t)KP[d->pll_state] * err);
-    d->nco_freq += (KI_Q10[d->pll_state] * err) >> 10;
+    if (d->pll_state == PLL_TRACK && (d->lock_err_avg >> 4) < LVL0_LEARN_MAX_ERR) {
+        /* quiet signal: a slightly wider loop follows the SI4735 better
+         * (+5 % frames on the recordings; 1.2 Hz throughout lost 20 % at -3 dB) */
+        d->nco_phase += (uint32_t)((int32_t)KP_QUIET * err);
+        d->nco_freq += (KI_QUIET_Q10 * err) >> 10;
+    } else {
+        d->nco_phase += (uint32_t)((int32_t)KP[d->pll_state] * err);
+        d->nco_freq += (KI_Q10[d->pll_state] * err) >> 10;
+    }
     if (d->nco_freq > d->nco_freq_nominal + FREQ_RANGE) d->nco_freq = d->nco_freq_nominal + FREQ_RANGE;
     if (d->nco_freq < d->nco_freq_nominal - FREQ_RANGE) d->nco_freq = d->nco_freq_nominal - FREQ_RANGE;
 
