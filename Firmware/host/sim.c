@@ -7,6 +7,10 @@
  *     -f HZ       Rayleigh-ish fading rate (multiplicative, 0 = off)
  *     -i RATE     impulsive noise bursts per second (atmospherics)
  *     -s SEED     random seed
+ *     -x PPM      crystal error of the receiver's clock (ticks run PPM fast)
+ *     -r T0 N0    truth: the frame starting at T0 seconds is number N0 (3 s
+ *                 periods); every frame the timekeeper accepts is checked
+ *                 against it and wrong ones are counted ("clock_wrong")
  *     -q          summary only
  *   sim -t        codec / date self-test, captured-frame regression
  */
@@ -104,6 +108,95 @@ static int captured_frames_test(void)
     return fails;
 }
 
+/*
+ * Synthetic signal in the conditions the bench receiver met on 2026-09-25:
+ * the 1 kHz tone offset by +14 Hz (SI4735 crystal), noise, and an
+ * overdriven, clipping ADC. One time frame every 3 s; bit '0' is a -32 deg
+ * phase step with the observed 16 ms slew. Returns the seconds until the
+ * carrier loop tracks, the learned '0' level, decoded frames, frames that
+ * decoded to a wrong time (Chase/RS miscorrections, see frame.c) and wrong
+ * times the timekeeper let into the clock (must be none).
+ */
+typedef struct { double lock_s; int lvl0_deg, ok, wrong, cand, clock_wrong; } synth_res_t;
+
+static void run_synth(double snr_db, double offset_hz, double gain, double secs, synth_res_t *res)
+{
+    static dsp_t dsp;
+    tk_t tk;
+    uint8_t bits[FRAME_BITS];
+    int16_t blk[DSP_BLOCK];
+    const double amp = 12000.0, lvl0 = -32.0 * M_PI / 180.0;
+    const double sigma = amp / sqrt(2.0) / pow(10, snr_db / 20);
+    const long spf = 3 * ADC_FS_HZ, spb = ADC_FS_HZ / BIT_RATE, ramp = RAMP_BLOCKS * DSP_BLOCK;
+    const uint32_t n3_0 = 281218475UL;
+    double ph = 0, prev_lvl = 0, cur_lvl = 0;
+    long n, total = (long)(secs * ADC_FS_HZ), k;
+    int built = -1;
+
+    memset(res, 0, sizeof *res);
+    res->lock_s = -1;
+    dsp_init(&dsp);
+    tk_init(&tk);
+    for (n = 0; n < total; n += DSP_BLOCK) {
+        for (k = 0; k < DSP_BLOCK; k++) {
+            long t = n + k, f = t / spf, in = t % spf, b = in / spb, ib = in % spb;
+            double target, v, lv;
+            if ((int)f != built) { frame_build(n3_0 + (uint32_t)f, 2, 0, bits); built = (int)f; }
+            target = (b < FRAME_BITS && !bits[b]) ? lvl0 : 0.0;
+            if (ib == 0) { prev_lvl = cur_lvl; cur_lvl = target; }
+            lv = ib < ramp ? prev_lvl + (cur_lvl - prev_lvl) * (ib + 1) / ramp : cur_lvl;
+            ph += 2 * M_PI * (AUDIO_CARRIER_HZ + offset_hz) / ADC_FS_HZ;
+            v = gain * (amp * sin(ph + lv) + grand() * sigma);
+            if (v > 32767) v = 32767;
+            if (v < -32768) v = -32768;
+            blk[k] = (int16_t)v;
+        }
+        dsp_block(&dsp, blk);
+        if (res->lock_s < 0 && dsp.pll_state == PLL_TRACK) res->lock_s = (double)n / ADC_FS_HZ;
+        if (dsp.cand_ready) {
+            frame_info_t fi;
+            /* frame start in samples -> which frame was sent then */
+            long start = (long)(dsp.cand.start_block - 1) * DSP_BLOCK;
+            uint32_t expect = n3_0 + (uint32_t)((start + spf / 2) / spf);
+            res->cand++;
+            if (frame_decode(dsp.cand.ph + CAND_PRE, &fi) == FR_OK) {
+                int64_t tick = (int64_t)start * TICKS_PER_SAMPLE + (int64_t)fi.timing_q15 * TICKS_PER_BLOCK / 32768;
+                tk_result_t r = tk_frame(&tk, tick, &fi);
+                if (fi.n3 == expect) res->ok++; else res->wrong++;
+                if ((r == TK_ACCEPTED || r == TK_SYNCED || r == TK_STEPPED) && fi.n3 != expect) res->clock_wrong++;
+            }
+            dsp.cand_ready = 0;
+        }
+    }
+    res->lvl0_deg = (int)lround(dsp.lvl0 * 360.0 / 65536);
+}
+
+static int synth_test(void)
+{
+    /* lock / frame limits are well inside what 2.0.3 does and fail the
+     * 2.0.0 carrier search (-8 dB: no lock) and 2.0.2 '0' level (-8 dB: -59 deg) */
+    static const struct { double snr, gain, max_lock_s; int min_ok, check_lvl; } C[] = {
+        {  6, 2.5, 10, 40, 1 },   /* strong and clipping, like the bench before 2.0.2 */
+        {  0, 1.0, 15, 10, 1 },
+        { -3, 1.0, 25,  5, 1 },
+        { -8, 1.0, 60,  0, 0 },   /* no decoding expected; must still lock, level must not drift */
+    };
+    int i, fails = 0;
+    for (i = 0; i < (int)(sizeof C / sizeof C[0]); i++) {
+        synth_res_t r;
+        int bad;
+        run_synth(C[i].snr, 14.0, C[i].gain, 180, &r);
+        bad = r.lock_s < 0 || r.lock_s > C[i].max_lock_s || r.ok < C[i].min_ok || r.clock_wrong ||
+              (C[i].check_lvl ? (r.lvl0_deg < -40 || r.lvl0_deg > -24) : r.lvl0_deg < -50);
+        printf("synthetic %+3.0f dB, +14 Hz%s: tracking after %.1f s, '0' level %d deg, %d/%d frames ok, "
+               "%d miscorrected (%d into the clock): %s\n",
+               C[i].snr, C[i].gain > 1 ? ", clipping" : "", r.lock_s, r.lvl0_deg, r.ok, r.cand,
+               r.wrong, r.clock_wrong, bad ? "FAIL" : "ok");
+        fails += bad;
+    }
+    return fails;
+}
+
 static int selftest(void)
 {
     uint8_t bits[FRAME_BITS];
@@ -139,7 +232,50 @@ static int selftest(void)
         }
     }
     printf("codec: ok %d wrong %d failures %d\n", ok, wrong, fails);
+    {   /* errors-and-erasures RS: every pattern with 2e + f <= 6 must decode exactly */
+        int bad = 0, tried = 0;
+        for (t = 0; t < 20000; t++) {
+            uint8_t cw[15], rx[15], er[6];
+            int f = t % 7, e = (6 - f) / 2, k, j, used[15] = { 0 }, r;
+            for (k = 6; k < 15; k++) cw[k] = (uint8_t)(urand() * 16);
+            frame_rs_encode(cw);
+            memcpy(rx, cw, 15);
+            for (k = 0; k < f + e; k++) {
+                do j = (int)(urand() * 15); while (used[j]);
+                used[j] = 1;
+                if (k < f) { er[k] = (uint8_t)j; rx[j] = (uint8_t)(urand() * 16); }
+                else rx[j] ^= (uint8_t)(1 + urand() * 15);
+            }
+            r = frame_rs_decode_erasures(rx, er, f);
+            tried++;
+            if (r < 0 || memcmp(rx, cw, 15)) bad++;
+        }
+        printf("rs errors+erasures: %d/%d wrong\n", bad, tried);
+        fails += bad;
+    }
     fails += captured_frames_test();
+    {   /* a synced clock steps only on three consistent frames, never on two */
+        tk_t tk2;
+        uint8_t b2[FRAME_BITS];
+        frame_info_t f2;
+        const int64_t T = 1000LL * FCY_HZ;
+        const uint32_t n0 = 281218475UL, off = 1000;   /* wrong frames: 50 min ahead */
+        tk_result_t r[6];
+        int q;
+        tk_init(&tk2);
+        for (q = 0; q < 6; q++) {
+            uint32_t n = n0 + (uint32_t)q + (q >= 2 ? off : 0);
+            frame_build(n, 2, 0, b2);
+            frame_check_bits(b2, &f2);
+            r[q] = tk_frame(&tk2, T + (int64_t)q * 3 * FCY_HZ, &f2);
+        }
+        /* 0,1: sync; 2,3: two agreeing wrong frames -> rejected; 4: third -> step */
+        q = r[0] == TK_CANDIDATE && r[1] == TK_SYNCED && r[2] == TK_REJECTED &&
+            r[3] == TK_REJECTED && r[4] == TK_STEPPED && r[5] == TK_ACCEPTED;
+        printf("step needs three consistent frames: %s\n", q ? "ok" : "FAIL");
+        fails += !q;
+    }
+    fails += synth_test();
     return fails || wrong > 20;
 }
 
@@ -159,6 +295,7 @@ int main(int argc, char **argv)
     int n_tk[5] = { 0 };
     double sum_err = 0, sum_err2 = 0; int n_err = 0;
     double fade_ph = 0, fade_a = 1;
+    double xtal_ppm = 0, ref_t0 = -1; uint32_t ref_n0 = 0; int clock_wrong = 0; double first_sync = -1;
 
     for (a = 1; a < argc; a++) {
         if (!strcmp(argv[a], "-t")) return selftest();
@@ -166,6 +303,8 @@ int main(int argc, char **argv)
         else if (!strcmp(argv[a], "-f")) fade_hz = atof(argv[++a]);
         else if (!strcmp(argv[a], "-i")) imp_rate = atof(argv[++a]);
         else if (!strcmp(argv[a], "-s")) rng_state ^= (uint64_t)atoll(argv[++a]) * 0x9E3779B97F4A7C15ULL;
+        else if (!strcmp(argv[a], "-x")) xtal_ppm = atof(argv[++a]);
+        else if (!strcmp(argv[a], "-r")) { ref_t0 = atof(argv[++a]); ref_n0 = (uint32_t)atol(argv[++a]); }
         else if (!strcmp(argv[a], "-q")) quiet = 1;
         else path = argv[a];
     }
@@ -208,10 +347,15 @@ int main(int argc, char **argv)
             else
                 tick = ((int64_t)(dsp.cand.start_block - 1) * DSP_BLOCK) * TICKS_PER_SAMPLE
                      + (int64_t)dsp.cand.frac_q15 * TICKS_PER_BLOCK / 32768;
+            tick += (int64_t)((double)tick * xtal_ppm * 1e-6);   /* receiver crystal error */
             double tsec = (double)tick / FCY_HZ;
             n_cand++;
             if (st == FR_OK) {
                 tk_result_t r = tk_frame(&tk, tick, &fi);
+                if (r == TK_ACCEPTED || r == TK_SYNCED || r == TK_STEPPED) {
+                    if (first_sync < 0) first_sync = tsec;
+                    if (ref_t0 >= 0 && fi.n3 != ref_n0 + (uint32_t)lround((tsec - ref_t0) / 3.0)) clock_wrong++;
+                }
                 static const char *RN[] = { "ACCEPT", "SYNC", "STEP", "CAND", "REJECT" };
                 tk_date_t d;
                 n_ok++; n_tk[r]++;
@@ -233,12 +377,16 @@ int main(int argc, char **argv)
             }
             dsp.cand_ready = 0;
         }
-        tk_maintain(&tk, (int64_t)(i + DSP_BLOCK) * TICKS_PER_SAMPLE);
+        {
+            int64_t now = (int64_t)(i + DSP_BLOCK) * TICKS_PER_SAMPLE;
+            tk_maintain(&tk, now + (int64_t)((double)now * xtal_ppm * 1e-6));
+        }
     }
     printf("SUMMARY snr=%g cand=%d time_ok=%d other=%d failed=%d accept=%d sync=%d step=%d cand=%d reject=%d "
-           "jitter_rms=%.0fus rate=%dppb\n",
+           "jitter_rms=%.0fus err_mean=%.0fus rate=%dppb first_sync=%.0fs clock_wrong=%d\n",
            snr, n_cand, n_ok, n_nottime, n_fail, n_tk[0], n_tk[1], n_tk[2], n_tk[3], n_tk[4],
-           n_err ? sqrt(sum_err2 / n_err - (sum_err / n_err) * (sum_err / n_err)) : 0.0, tk_rate_ppb(&tk));
+           n_err ? sqrt(sum_err2 / n_err - (sum_err / n_err) * (sum_err / n_err)) : 0.0,
+           n_err ? sum_err / n_err : 0.0, tk_rate_ppb(&tk), first_sync, clock_wrong);
     free(all);
     return 0;
 }

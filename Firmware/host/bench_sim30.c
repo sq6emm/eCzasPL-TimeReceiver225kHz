@@ -78,6 +78,23 @@ int main(void)
             LOG("cand blk=%lu corr=%d st=%d N=%lu tz=%u rs=%u chase=%u timing=%ld decode_cycles=%lu\n",
                    (unsigned long)dsp.cand.start_block, dsp.cand.corr_q10, st, (unsigned long)fi.n3,
                    fi.tz, fi.rs_fixed, fi.chase_flips, (long)fi.timing_q15, (unsigned long)t * 64);
+            if (st == FR_OK) {
+                /* worst case: the same candidate with its payload replaced by
+                 * noise, so RS, every Chase variant and the GMD retries fail */
+                static int16_t bad[CAND_LEN];
+                int k;
+                memcpy(bad, dsp.cand.ph, sizeof bad);
+                for (k = CAND_PRE + PREAMBLE_BITS * SPB; k < CAND_LEN; k++) {
+                    lcg = lcg * 1103515245UL + 12345UL;
+                    bad[k] = (int16_t)(lcg >> 16);
+                }
+                T1CONbits.TCKPS = 2;
+                TMR1 = 0;
+                st = frame_decode(bad + CAND_PRE, &fi);
+                t = TMR1;
+                T1CONbits.TCKPS = 0;
+                LOG("  worst case (noise payload): st=%d decode_cycles=%lu\n", st, (unsigned long)t * 64);
+            }
             dsp.cand_ready = 0;
         }
     }

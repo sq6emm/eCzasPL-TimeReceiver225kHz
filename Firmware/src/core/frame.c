@@ -155,8 +155,92 @@ int frame_rs_decode(uint8_t cw[15])
     return L;
 }
 
-/* Validate/correct hard bits in place. Returns 1 if RS + CRC pass. */
-int frame_check_bits(uint8_t bits[FRAME_BITS], frame_info_t *out)
+/* Errors-and-erasures decoding: the symbols at erase[0..f-1] (degrees) are
+ * treated as unknown. Corrects e errors on top if 2e + f <= 6. Returns the
+ * number of corrected symbols (erasures included) or -1. Forney syndromes:
+ * the erasure locator is folded into the syndromes, Berlekamp-Massey finds
+ * the error locator, and Forney's formula runs on the combined locator. */
+int frame_rs_decode_erasures(uint8_t cw[15], const uint8_t *erase, int f)
+{
+    uint8_t S[6], G[7], T[6], C[7], B[7], Tm[7], L2[7], Om[6];
+    uint8_t pos[6];
+    int i, j, n, L = 0, m = 1, npos = 0, any = 0, deg;
+    uint8_t b = 1;
+
+    for (i = 0; i < 6; i++) {
+        uint8_t sv = 0;
+        for (j = 14; j >= 0; j--) sv = gmul(sv, GF_EXP[i + 1]) ^ cw[j];
+        S[i] = sv;
+        any |= sv;
+    }
+    if (!any) return 0;
+
+    /* erasure locator G(x) = prod (1 - X_k x), X_k = alpha^erase[k] */
+    memset(G, 0, sizeof G); G[0] = 1;
+    for (i = 0; i < f; i++) {
+        uint8_t X = GF_EXP[erase[i] % 15];
+        for (j = i + 1; j >= 1; j--) G[j] ^= gmul(G[j - 1], X);
+    }
+    /* Forney syndromes T(x) = S(x) G(x) mod x^6; only T[f..5] are free of erasures */
+    for (i = 0; i < 6; i++) {
+        uint8_t t = 0;
+        for (j = 0; j <= i && j <= f; j++) t ^= gmul(G[j], S[i - j]);
+        T[i] = t;
+    }
+    /* Berlekamp-Massey on T[f..5] for the error locator */
+    memset(C, 0, sizeof C); memset(B, 0, sizeof B);
+    C[0] = B[0] = 1;
+    for (n = f; n < 6; n++) {
+        uint8_t dlt = T[n], coef;
+        for (i = 1; i <= L; i++) dlt ^= gmul(C[i], T[n - i]);
+        if (!dlt) { m++; continue; }
+        memcpy(Tm, C, sizeof C);
+        coef = gdiv(dlt, b);
+        for (i = m; i < 7; i++) C[i] ^= gmul(coef, B[i - m]);
+        if (2 * L <= n - f) { L = n - f + 1 - L; memcpy(B, Tm, sizeof B); b = dlt; m = 1; }
+        else m++;
+    }
+    if (2 * L + f > 6) return -1;
+
+    /* combined locator Lambda = C * G */
+    memset(L2, 0, sizeof L2);
+    for (i = 0; i <= L; i++)
+        for (j = 0; j <= f && i + j < 7; j++) L2[i + j] ^= gmul(C[i], G[j]);
+    deg = L + f;
+
+    for (n = 0; n < 15; n++) {
+        uint8_t xinv = GF_EXP[(15 - n) % 15], sv = 0;
+        for (i = deg; i >= 0; i--) sv = gmul(sv, xinv) ^ L2[i];
+        if (!sv) {
+            if (npos == 6) return -1;
+            pos[npos++] = (uint8_t)n;
+        }
+    }
+    if (npos != deg) return -1;
+
+    for (i = 0; i < 6; i++) {
+        uint8_t o = 0;
+        for (j = 0; j <= i && j <= deg; j++) o ^= gmul(S[i - j], L2[j]);
+        Om[i] = o;
+    }
+    for (n = 0; n < npos; n++) {
+        uint8_t xinv = GF_EXP[(15 - pos[n]) % 15], num = 0, den = 0;
+        for (i = 5; i >= 0; i--) num = gmul(num, xinv) ^ Om[i];
+        for (i = 1; i <= deg; i += 2)
+            den ^= gmul(L2[i], GF_EXP[(GF_LOG[xinv] * (i - 1)) % 15]);
+        if (!den) return -1;
+        cw[pos[n]] ^= gdiv(num, den);
+    }
+    return npos;
+}
+
+/* Validate/correct hard bits in place. Returns 1 if RS + CRC pass.
+ * allow_sk1: also accept the frame with SK1 (not RS protected) flipped if
+ * that makes the CRC match. Each extra variant tried is another ~1/256
+ * chance for a corrupted frame to pass the CRC, so the Chase retries don't
+ * use it: on the bench (2026-09-25) Chase + SK1 gave 1 good and 3 wrong
+ * frames, while Chase alone gave 38 good and 1 wrong. */
+static int check_bits(uint8_t bits[FRAME_BITS], frame_info_t *out, int allow_sk1)
 {
     uint8_t cw[15], rx = 0, d[37];
     int i, fixed, crc_ok = 0, sk1_fixed = 0;
@@ -169,7 +253,7 @@ int frame_check_bits(uint8_t bits[FRAME_BITS], frame_info_t *out)
     for (i = 88; i < 96; i++) rx = (uint8_t)((rx << 1) | bits[i]);
     if (frame_crc8(bits + 24) == rx) {
         crc_ok = 1;
-    } else {
+    } else if (allow_sk1) {
         bits[63] ^= 1;                      /* SK1 is not RS protected */
         if (frame_crc8(bits + 24) == rx) { crc_ok = 1; sk1_fixed = 1; }
         else bits[63] ^= 1;
@@ -188,6 +272,11 @@ int frame_check_bits(uint8_t bits[FRAME_BITS], frame_info_t *out)
         out->sk1_fixed = (uint8_t)sk1_fixed;
     }
     return 1;
+}
+
+int frame_check_bits(uint8_t bits[FRAME_BITS], frame_info_t *out)
+{
+    return check_bits(bits, out, 1);
 }
 
 void frame_build(uint32_t n3, uint8_t tz, uint8_t flags, uint8_t bits[FRAME_BITS])
@@ -243,7 +332,7 @@ static int32_t refine_timing(const int16_t *ph, const uint8_t *bits, int32_t l1,
     return best;
 }
 
-static int popcount5(unsigned v)
+static int popcount(unsigned v)
 {
     int n = 0;
     while (v) { n += v & 1; v >>= 1; }
@@ -379,9 +468,9 @@ frame_status_t frame_decode(const int16_t *ph, frame_info_t *out)
     }
 
     /* Other services use markers like 0x78 (2 bits away from 0x60). Such
-     * frames get only the single hard-decision attempt above: trying 31
-     * Chase variants of a non-time frame would give a ~2% chance of a
-     * bogus RS+CRC match. */
+     * frames get only the single hard-decision attempt above: trying the
+     * 2^CHASE_BITS - 1 Chase variants (and the GMD retries) on a non-time
+     * frame would give a real chance of a bogus RS+CRC match. */
     if (marker_err > 1) return FR_UNCORRECTABLE;
 
     /* Chase-II: flip combinations of the least reliable data bits */
@@ -400,16 +489,71 @@ frame_status_t frame_decode(const int16_t *ph, frame_info_t *out)
     ncombo = 1u << CHASE_BITS;
     for (err = 1; err <= CHASE_BITS; err++) {        /* fewest flips first */
         for (combo = 1; combo < ncombo; combo++) {
-            if (popcount5(combo) != err) continue;
+            if (popcount(combo) != err) continue;
             memcpy(work, bits, sizeof bits);
             for (i = 0; i < CHASE_BITS; i++)
                 if (combo & (1u << i)) work[weak[i]] ^= 1;
-            if (frame_check_bits(work, out)) {
+            if (check_bits(work, out, 0)) {
                 out->chase_flips = (uint8_t)err;
                 out->timing_q15 = refine_timing(ph, work, s1 / 3, s0 / 3);
                 return FR_OK;
             }
         }
     }
+
+#if GMD_MAX_ERASURES > 0
+    /* Generalised minimum distance: erase the least reliable RS symbols (the
+     * weakest bit LLR in each) and decode errors + erasures, 2 then 4
+     * erasures. More erasures leave fewer checks, so the CRC (and the
+     * timekeeper) do more of the work; no SK1 repair here. */
+    {
+        uint8_t symk[15], order[15], cw[15], er[6];
+        int32_t rel[15];
+        int f;
+        for (i = 0; i < 15; i++) {
+            int base = i < 9 ? 27 + 4 * i : 64 + 4 * (i - 9), j;
+            int32_t mn = 0x7FFFFFFFL;
+            for (j = 0; j < 4; j++) {
+                int32_t a = llr[base + j] < 0 ? -llr[base + j] : llr[base + j];
+                if (a < mn) mn = a;
+            }
+            rel[i] = mn;
+            symk[i] = (uint8_t)(i < 9 ? 6 + i : i - 9);   /* polynomial degree */
+            order[i] = (uint8_t)i;
+        }
+        for (i = 1; i < 15; i++) {                        /* sort by reliability */
+            uint8_t o = order[i]; int j = i;
+            while (j > 0 && rel[order[j - 1]] > rel[o]) { order[j] = order[j - 1]; j--; }
+            order[j] = o;
+        }
+        for (f = 2; f <= GMD_MAX_ERASURES; f += 2) {
+            int r;
+            for (i = 0; i < f; i++) er[i] = symk[order[i]];
+            memcpy(work, bits, sizeof bits);
+            {   /* hard bits -> codeword (same layout as bits_to_cw) */
+                int k2, j2;
+                for (k2 = 0; k2 < 9; k2++) {
+                    uint8_t v = 0;
+                    for (j2 = 0; j2 < 4; j2++) v = (uint8_t)((v << 1) | work[27 + 4 * k2 + j2]);
+                    cw[6 + k2] = v;
+                }
+                for (k2 = 0; k2 < 6; k2++) {
+                    uint8_t v = 0;
+                    for (j2 = 0; j2 < 4; j2++) v = (uint8_t)((v << 1) | work[64 + 4 * k2 + j2]);
+                    cw[k2] = v;
+                }
+            }
+            r = frame_rs_decode_erasures(cw, er, f);
+            if (r < 0) continue;
+            cw_to_bits(cw, work);
+            if (check_bits(work, out, 0)) {             /* now a valid codeword: CRC decides */
+                out->erasures = (uint8_t)f;
+                out->rs_fixed = (uint8_t)r;
+                out->timing_q15 = refine_timing(ph, work, s1 / 3, s0 / 3);
+                return FR_OK;
+            }
+        }
+    }
+#endif
     return FR_UNCORRECTABLE;
 }

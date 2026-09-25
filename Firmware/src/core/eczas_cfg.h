@@ -20,17 +20,26 @@
 #define SPB               (DSP_RATE_HZ / BIT_RATE)        /* 10 blocks per bit */
 #define FRAME_BITS        96
 #define PREAMBLE_BITS     27          /* 0x5555, 0x60, 101 */
+#ifndef RAMP_BLOCKS
 #define RAMP_BLOCKS       8           /* measured phase slew ~16 ms */
+#endif
 
 /* Frame detector: normalised correlation threshold against preamble (0..1),
  * expressed in 1/1024 units. Real frames score 0.35..0.95; everything that
  * passes is still subject to RS + CRC + time consistency checks. */
 #ifndef DET_THRESHOLD_Q10
-#define DET_THRESHOLD_Q10 360
+#define DET_THRESHOLD_Q10 300
 #endif
 
-/* Chase decoding: number of least-reliable bits tried when a frame fails. */
-#define CHASE_BITS        5
+/* Chase decoding: number of least-reliable bits tried when a frame fails
+ * (2^n - 1 variants). 7 on the recordings: +9..+64 % frames over 5 (the most
+ * at -3..-6 dB) with no wrong time reaching the clock; about 2.4x as many
+ * miscorrected frames reach the timekeeper (which rejects them). Worst case
+ * 1.1 M cycles (28 ms) per candidate. 8 would add 5-10 % more frames for
+ * ~65 % more miscorrections and 55 ms. */
+#ifndef CHASE_BITS
+#define CHASE_BITS        7
+#endif
 
 /* ---- Timekeeping --------------------------------------------------------- */
 /* Delay between the moment encoded in a frame and the moment the frame start
@@ -50,9 +59,12 @@
 
 /* Copy the human readable diagnostics (SV1) to the NMEA port (SV2) as
  * proprietary $PECZ,<text>*hh sentences, sent between the $GPRMC sentences.
- * NMEA/GPS software ignores unknown sentences. Set to 0 for a clean NMEA
- * stream. */
-#define DEBUG_TO_NMEA     1
+ * Off by default: many lines are longer than the 82 characters NMEA 0183
+ * allows, which overflows the line buffer of simple NMEA readers (seen with
+ * the MGMBeacon, 90 bytes). Build with "make NMEA_DEBUG=1" to enable. */
+#ifndef DEBUG_TO_NMEA
+#define DEBUG_TO_NMEA     0
+#endif
 /* Report the audio level every second for this long after power-up (to
  * adjust the gain trimmer R27), then every STATUS_PERIOD_S. */
 #define LEVEL_FAST_S      180
@@ -63,6 +75,7 @@
  * only the carrier phase, so volume changes do not disturb it. R27 needs
  * adjusting only when the volume sits at VOL_MIN or 63. */
 #define VOL_MIN           10
+#define VOL_START         58          /* 63 clipped for the first second on the bench board */
 #define LEVEL_HIGH_PCT    85
 #define LEVEL_LOW_PCT     40
 #define LEVEL_UP_S        5
@@ -73,6 +86,12 @@
 #define NMEA_LAT          "5214.5098,N"
 #define NMEA_LON          "02100.0504,E"
 
-#define FW_VERSION        "2.0.2"
+/* Last-resort decoding of frames that RS and Chase could not fix: erase up
+ * to this many least reliable RS symbols (2, 4, 6; 0 = off). */
+#ifndef GMD_MAX_ERASURES
+#define GMD_MAX_ERASURES  4
+#endif
+
+#define FW_VERSION        "2.0.3"
 
 #endif

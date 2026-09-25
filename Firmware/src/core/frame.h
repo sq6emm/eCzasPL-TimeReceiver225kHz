@@ -31,6 +31,7 @@ typedef struct {
     uint8_t  rs_fixed;      /* RS symbols corrected */
     uint8_t  chase_flips;   /* extra bits flipped by Chase decoding */
     uint8_t  sk1_fixed;     /* SK1 recovered through CRC */
+    uint8_t  erasures;      /* symbols erased by the GMD retry (0 = not used) */
     uint8_t  raw[12];       /* hard-decision frame as received */
     int16_t  lvl_sep;       /* measured '1'-'0' phase separation */
     int16_t  snr_db;        /* estimated from preamble (dB) */
@@ -43,6 +44,7 @@ frame_status_t frame_decode(const int16_t *ph, frame_info_t *out);
 /* Exposed for tests / encoder */
 uint8_t frame_crc8(const uint8_t *bits40);
 int     frame_rs_decode(uint8_t cw[15]);           /* returns #fixed or -1 */
+int     frame_rs_decode_erasures(uint8_t cw[15], const uint8_t *erase, int f); /* erase: degrees */
 void    frame_rs_encode(uint8_t cw[15]);           /* fills cw[0..5] from cw[6..14] */
 void    frame_build(uint32_t n3, uint8_t tz, uint8_t flags, uint8_t bits[FRAME_BITS]);
 int     frame_check_bits(uint8_t bits[FRAME_BITS], frame_info_t *out);

@@ -20,8 +20,10 @@ static volatile char dbg_buf[DBG_SIZE];
 static volatile uint16_t dbg_head, dbg_tail, dbg_drop;
 static volatile char nmea_buf[NMEA_SIZE];
 static volatile uint16_t nmea_head, nmea_tail;
+#if DEBUG_TO_NMEA
 static char mir_buf[MIR_SIZE];              /* debug text waiting for SV2 */
 static uint16_t mir_head, mir_tail, mir_lines;
+#endif
 
 void uart_init(void)
 {
@@ -115,6 +117,7 @@ uint16_t nmea_free(void)
 
 void dbg_mirror_flush(void)
 {
+#if DEBUG_TO_NMEA
     char line[200];
     while (mir_lines) {
         uint16_t n = 6, i = mir_tail;
@@ -134,6 +137,7 @@ void dbg_mirror_flush(void)
         nmea_write(line, n);
         __builtin_disi(0);
     }
+#endif
 }
 
 void nmea_write(const char *s, uint16_t n)

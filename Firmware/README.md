@@ -1,11 +1,11 @@
-# e-CzasPL 225 kHz receiver – new firmware (2.0.2)
+# e-CzasPL 225 kHz receiver – new firmware (2.0.3)
 
 A from-scratch firmware for the simplified receiver (dsPIC33FJ128GP804 + SI4735)
 in this repository. It is a drop-in replacement for `uproszczony_odbiornik.hex`:
 same board, same connectors, same `$GPRMC` format.
 
-* `eczas_receiver_2.0.2.hex` – ready to program (MPLAB IPE, device dsPIC33FJ128GP804)
-* `eczas_receiver_2.0.2_64MC804.hex` – the same for boards fitted with a
+* `eczas_receiver_2.0.3.hex` – ready to program (MPLAB IPE, device dsPIC33FJ128GP804)
+* `eczas_receiver_2.0.3_64MC804.hex` – the same for boards fitted with a
   dsPIC33FJ64MC804 (same pinout; check the marking on the chip, the programmer
   reports an invalid device ID if the wrong device is selected)
 * `uproszczony_odbiornik.hex` – the original firmware, unchanged
@@ -48,11 +48,14 @@ At 0 dB, one in five frames the original accepts carries a wrong time.
   and drifts) → normalised correlation with the 27 known preamble bits.
 * **Decoder** (`src/core/frame.c`): max-log MAP bit detection that uses the
   real ~16 ms phase slew, RS(15,9) decoding, **CRC-8 check**, SK1 recovery
-  through the CRC, Chase retries on the least reliable bits, and a fine
-  timing estimate from all 96 bits.
+  through the CRC, Chase retries on the 7 least reliable bits, then
+  errors-and-erasures RS decoding with the 2 or 4 least reliable symbols
+  erased, and a fine timing estimate from all 96 bits. Every retry only
+  proposes a frame; the CRC and the timekeeper decide.
 * **Timekeeper** (`src/core/timekeeper.c`): a new time is accepted only if it
-  matches the running clock (±100 ms). Before the first sync, or if the clock
-  disagrees, **two frames must agree with each other** before anything is set.
+  matches the running clock (±100 ms). Before the first sync **two frames must
+  agree with each other** before anything is set; to step a running clock that
+  disagrees, three must.
   The crystal rate is measured over hours, so holdover stays accurate. Time
   stays "valid" for 24 h without frames (LED3, `$GPRMC` status `A`).
 * **1PPS** from a hardware output compare (200 ns resolution) on SV1 pin 1 and
@@ -112,9 +115,12 @@ A `CLOCK REJECTED` line means a frame passed RS and CRC but disagreed with the
 clock. On weak signals these are miscorrected frames, exactly what the
 original firmware copied into its clock.
 
-`DEBUG_TO_NMEA` (`src/core/eczas_cfg.h`, on by default) copies these lines to
-SV2 as `$PECZ,...` sentences, sent 40–700 ms after each PPS so they never
-delay `$GPRMC`. Set it to 0 for a pure NMEA stream.
+`DEBUG_TO_NMEA` (`src/core/eczas_cfg.h`) copies these lines to SV2 as
+`$PECZ,...` sentences, sent 40–700 ms after each PPS so they never delay
+`$GPRMC`. It is off in the ready-made hex files since 2.0.3: many lines are
+longer than the 82 characters NMEA 0183 allows and overflow the line buffer
+of simple NMEA readers. Build with `make NMEA_DEBUG=1` to turn it on (e.g.
+for a test bench that only has SV2 connected).
 
 ## Timing accuracy and calibration
 
@@ -134,7 +140,8 @@ make                 # -> build/eczas_receiver.hex
 make host-test       # codec/date self-test with the host C compiler
 ```
 
-`make MCU=33FJ64MC804` builds for a dsPIC33FJ64MC804.
+`make MCU=33FJ64MC804` builds for a dsPIC33FJ64MC804, `make NMEA_DEBUG=1`
+also sends the diagnostics on SV2 (see below).
 `XC16_DIR` can point at the compiler if it is not in `~/.local/microchip/xc16`
 or `/opt/microchip/xc16`. MPLAB X users can create a standalone project for
 dsPIC33FJ128GP804 and add all files under `src/`.
@@ -151,6 +158,18 @@ make -C host sim && host/sim rec.raw          # add -n <snr dB>, -f <fade Hz>, -
 cd host/tools && REC=../../rec.raw SIM=../sim python3 compare.py 20,10,5,0,-3 30
 ```
 
+`make -C host test` runs the self-tests: codec, errors-and-erasures RS,
+frames captured off-air, timekeeper rules, and a synthetic signal with the
+conditions met on the first board (+14 Hz tone offset, clipping, 0 to -8 dB).
+`host/tools/bench.py` compares simulator builds on the recordings at several
+noise levels and seeds, with the board's crystal error, and counts wrong
+times that reach the clock (it must stay 0):
+
+```
+python3 host/tools/bench.py prep host/sim /path/to/recordings   # 224k_*.raw
+python3 host/tools/bench.py run new=host/sim old=/tmp/sim_old --snr 3,0,-3,-6 --seeds 8
+```
+
 `compare.py` runs the new decoder and a model of the original firmware's
 demodulator (`orig_model.py`, using its actual filter coefficients) on the
 same noisy signals. `host/bench_sim30.c` + `host/run_sim30.sh` run the
@@ -159,15 +178,17 @@ cycle counts on the real instruction set.
 
 ## Status
 
-Verified: decoding of real recordings, decoding and CPU load on the dsPIC
-instruction set (simulator), build for the target. **Not yet run on the board.**
-The SI4735 initialisation copies the original byte for byte, but the
-peripheral code (ADC/DMA, output compare, UARTs) has only been checked against
-the datasheet so far.
+Running on a receiver since 25 Sep 2026 (a board fitted with a
+dsPIC33FJ64MC804): it synchronises within a minute or two, rejects the wrong
+frames the original firmware accepted, and keeps `$GPRMC` aligned to the
+second. Also verified: decoding of real recordings with added noise, frequency
+offset and clipping (`host/sim`, `host/tools/bench.py`), decoding and CPU load
+on the dsPIC instruction set (`sim30`). Not yet measured: the absolute delay
+of the 1PPS against GPS (`RX_DELAY_US`).
 
 ## License
 
-The new firmware (`src/`, `host/`, `eczas_receiver_2.0.2*.hex`) is released
+The new firmware (`src/`, `host/`, `eczas_receiver_2.0.3*.hex`) is released
 under the MIT License in `../LICENSE`, like the rest of this repository. It is
 derived in part from e-CzasPL's original firmware (`uproszczony_odbiornik.hex`,
 © 2024 e-CzasPL, MIT): the SI4735 set-up sequence and, for the host-side
@@ -175,7 +196,7 @@ comparison model only, the original filter coefficients
 (`host/tools/orig_fir_tables.json`) were recovered from it.
 
 **Exception: the SI4735 SSB patch** (`src/hw/si4735_patch.c`, and the copy
-of it inside the `eczas_receiver_2.0.2*.hex` files) is **not** covered by the MIT
+of it inside the `eczas_receiver_2.0.3*.hex` files) is **not** covered by the MIT
 License. It is firmware for the SI4735's internal DSP and is the property of
 Silicon Labs (now Skyworks Solutions). Silicon Labs has not published it or
 put it under a public license. The same patch is distributed with the

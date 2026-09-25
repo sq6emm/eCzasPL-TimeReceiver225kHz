@@ -159,7 +159,7 @@ static void handle_candidate(void)
     n_heard++;
     log_head("FRAME");
     dbg_printf("#%lu corr %d.%02d ", (unsigned long)n_heard, c->corr_q10 / 1024,
-               (c->corr_q10 % 1024) * 100 / 1024);
+               (int)((int32_t)(c->corr_q10 % 1024) * 100 / 1024));   /* int is 16 bits here */
     if (st != FR_OK) {
         n_undecodable++;
         dbg_printf("- not decodable (%s, snr %d dB)\r\n",
@@ -202,7 +202,7 @@ static void handle_candidate(void)
             break;
         case TK_STEPPED:
             log_head("CLOCK");
-            dbg_printf("STEPPED - clock was off by %ld ms, confirmed by two frames\r\n", (long)off_ms);
+            dbg_printf("STEPPED - clock was off by %ld ms, confirmed by three frames\r\n", (long)off_ms);
             break;
         case TK_CANDIDATE:
             log_head("CLOCK");

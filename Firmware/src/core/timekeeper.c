@@ -9,7 +9,10 @@
 #define NOMINAL_RATE_Q16  ((int64_t)FCY_HZ << 16)
 #define PAIR_MAX_SPAN_S   1200      /* candidates older than this are dropped */
 #define RATE_MIN_BASE_S   600       /* rate is measured over at least this */
+#define RATE_EARLY_BASE_S 120       /* ...but a clearly large offset is used from here */
+#define RATE_EARLY_NOISE_TICKS (2 * TICKS_PER_MS)   /* frame timing noise allowance */
 #define REF_ROTATE_S      7200
+#define STEP_CONFIRMATIONS 2        /* older frames that must agree before a synced clock is stepped */
 
 static int64_t div_floor(int64_t a, int64_t b)   /* b > 0 */
 {
@@ -103,11 +106,13 @@ static void add_cand(tk_t *t, int64_t tick, uint32_t sec)
     t->ncand++;
 }
 
-/* Is the newest candidate confirmed by an older one? */
-static int cand_confirmed(const tk_t *t)
+/* How many older candidates agree with the newest one (their time
+ * difference matches the elapsed ticks). */
+static int cand_confirmations(const tk_t *t)
 {
     const tk_point_t *b = &t->cand[t->ncand - 1];
     uint8_t i;
+    int n = 0;
     for (i = 0; i + 1 < t->ncand; i++) {
         const tk_point_t *a = &t->cand[i];
         int64_t dt = b->tick - a->tick;
@@ -116,9 +121,9 @@ static int cand_confirmed(const tk_t *t)
         if (ds <= 0 || dt <= 0) continue;
         expect = div_floor(ds * t->rate_q16, 65536);
         tol = 20 * TICKS_PER_MS + dt / 5000;           /* 20 ms + 200 ppm */
-        if (dt - expect <= tol && expect - dt <= tol) return 1;
+        if (dt - expect <= tol && expect - dt <= tol) n++;
     }
-    return 0;
+    return n;
 }
 
 static void set_leap(tk_t *t, const frame_info_t *fi, uint32_t sec)
@@ -164,8 +169,20 @@ tk_result_t tk_frame(tk_t *t, int64_t frame_tick, const frame_info_t *fi)
             t->anchor_sec = sec;
             t->anchor_tick = pred + err / 4;
             t->last_ok_tick = tick;
-            if (t->have_old && sec - t->ref_old.sec >= RATE_MIN_BASE_S)
+            if (t->have_old && sec - t->ref_old.sec >= RATE_MIN_BASE_S) {
                 t->rate_q16 = ((tick - t->ref_old.tick) * 65536) / (int64_t)(sec - t->ref_old.sec);
+            } else if (t->have_old && sec - t->ref_old.sec >= RATE_EARLY_BASE_S) {
+                /* Before the full baseline: use the short-baseline rate only
+                 * when the offset it shows is well above its own noise
+                 * (2 ms over the baseline), so a poor crystal (the bench
+                 * board's is -24 ppm) is corrected after a few minutes
+                 * without making a good one worse. */
+                int64_t base = (int64_t)(sec - t->ref_old.sec);
+                int64_t est = ((tick - t->ref_old.tick) * 65536) / base;
+                int64_t off = est - NOMINAL_RATE_Q16;
+                int64_t noise = ((int64_t)RATE_EARLY_NOISE_TICKS * 65536) / base;
+                if (off > 2 * noise || -off > 2 * noise) t->rate_q16 = est;
+            }
             if (!t->have_new && sec - t->ref_old.sec >= REF_ROTATE_S) {
                 t->ref_new.tick = tick; t->ref_new.sec = sec; t->have_new = 1;
             } else if (t->have_new && sec - t->ref_new.sec >= REF_ROTATE_S) {
@@ -176,8 +193,12 @@ tk_result_t tk_frame(tk_t *t, int64_t frame_tick, const frame_info_t *fi)
             t->n_ok++;
             r = TK_ACCEPTED;
         } else {
+            /* A running clock hardly ever needs a real step (holdover drift
+             * is ms per day), while miscorrected frames with the same wrong
+             * offset could in principle agree in pairs; so a step needs
+             * three consistent frames, the first sync only two. */
             add_cand(t, tick, sec);
-            if (cand_confirmed(t)) {
+            if (cand_confirmations(t) >= STEP_CONFIRMATIONS) {
                 sync_to(t, tick, sec);
                 t->n_steps++;
                 r = TK_STEPPED;
@@ -188,7 +209,7 @@ tk_result_t tk_frame(tk_t *t, int64_t frame_tick, const frame_info_t *fi)
         }
     } else {
         add_cand(t, tick, sec);
-        if (!cand_confirmed(t)) return TK_CANDIDATE;
+        if (cand_confirmations(t) < 1) return TK_CANDIDATE;
         sync_to(t, tick, sec);
         r = TK_SYNCED;
     }

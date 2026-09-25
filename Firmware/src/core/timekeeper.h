@@ -10,8 +10,8 @@
  *   - not synchronised: two frames must agree with each other (their time
  *     difference must match the local elapsed time within tolerance),
  *   - synchronised: a frame must match our own clock within SYNC_MAX_ERR_MS;
- *     frames that disagree are only believed when two of them agree with each
- *     other, then the clock is stepped.
+ *     frames that disagree are only believed when three of them agree with
+ *     each other, then the clock is stepped.
  */
 #ifndef TIMEKEEPER_H
 #define TIMEKEEPER_H

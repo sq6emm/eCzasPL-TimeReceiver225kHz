@@ -40,6 +40,7 @@ static const int16_t KI_Q10[4] = { 0, 13250, 2120, 530 };
 #define FREQ_RANGE      17179869L   /* +-40 Hz in NCO units */
 #define UNLOCK_ERR      DEG2PH(25)
 #define UNLOCK_BLOCKS   5000        /* 10 s */
+#define LVL0_LEARN_MAX_ERR DEG2PH(10)  /* lvl0 learns only below this loop noise */
 
 static void build_template(void)
 {
@@ -131,12 +132,17 @@ static void pll_update(dsp_t *d, int16_t ph, int32_t re, int32_t im)
         return;
     }
 
-    /* decision-directed error: nearest of the two data levels */
+    /* decision-directed error: nearest of the two data levels. lvl0 follows
+     * the samples judged '0' (slew samples included, which is what this
+     * error needs), but only while the loop is quiet: in noise that average
+     * is biased (only samples below lvl0/2 are counted), and ungated it ran
+     * into the -60 deg limit at -6 dB. The 10 deg gate gave the most frames
+     * on the recordings at +3..-6 dB (6/8/12/15 deg were all worse). */
     if (ph > d->lvl0 / 2) {
         err = ph;
     } else {
         err = (int32_t)ph - d->lvl0;
-        if (d->pll_state == PLL_TRACK) {
+        if (d->pll_state == PLL_TRACK && (d->lock_err_avg >> 4) < LVL0_LEARN_MAX_ERR) {
             int32_t l = d->lvl0 + (err >> 8);
             if (l > DEG2PH(-18)) l = DEG2PH(-18);
             if (l < DEG2PH(-60)) l = DEG2PH(-60);

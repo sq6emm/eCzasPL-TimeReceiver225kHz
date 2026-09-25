@@ -6,8 +6,8 @@
  * firmware (a port of the PU2CLR SI4735 library), recovered from its
  * disassembly, so the radio is configured exactly as before:
  *   SSB_MODE = 0x9015: 1 kHz band-pass audio filter, AVC on, SSB AFC off
- *   SSB_BFO = 0, AVC max gain = 89 dB, volume = 63 (lowered at run time by
- *   the level control in main.c)
+ *   SSB_BFO = 0, AVC max gain = 89 dB, volume = 63 (the original; this
+ *   firmware starts at VOL_START and the level control in main.c adjusts it)
  *   SSB_TUNE_FREQ 224 kHz, USB, antenna cap bytes 0x82 0xB8
  */
 #include "board.h"
@@ -17,7 +17,7 @@
 
 #define ADDR 0x11
 
-static uint8_t volume = 63;
+static uint8_t volume = VOL_START;
 
 #define CMD_POWER_UP      0x01
 #define CMD_GET_REV       0x10

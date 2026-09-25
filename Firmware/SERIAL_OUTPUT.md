@@ -16,7 +16,7 @@ at 115200.
 picocom -b 115200 /dev/ttyUSB0             # or: screen /dev/ttyUSB0 115200
 # log with PC timestamps (useful next to a GPSDO):
 stdbuf -o0 cat /dev/ttyUSB0 | ts '%H:%M:%.S' | tee receiver.log
-# new firmware, one cable on SV2: show only the diagnostics, as plain text
+# firmware built with NMEA_DEBUG=1, one cable on SV2: show only the diagnostics, as plain text
 grep --line-buffered '^\$PECZ,' receiver.log | sed -E 's/^\$PECZ,//; s/\*[0-9A-F]{2}\r?$//'
 ```
 
@@ -42,7 +42,7 @@ The uptime is counted by the ADC sample clock since power-up, in seconds with
 #### BOOT / RADIO – start-up
 
 ```
-[     0.0] BOOT    e-CzasPL 225 kHz receiver, firmware 2.0.2 (Sep 25 2026)
+[     0.0] BOOT    e-CzasPL 225 kHz receiver, firmware 2.0.3 (Sep 25 2026)
 [     0.0] BOOT    SV1: diagnostics, SV2: NMEA ... LED4 1PPS
 SI4735: part 23 fw 60 chip D lib 7
 SI4735: loading SSB patch... done
@@ -113,7 +113,7 @@ services on the carrier (Enea lighting control etc.) are ignored silently.
 | `snr 12 dB` | signal-to-noise estimated from the preamble: separation of the `1`/`0` phase levels against their scatter. Frames decode reliably above ~3 dB. |
 | `fixed 1 symbol(s)` | Reed-Solomon corrected this many 4-bit symbols (0–3) |
 | `+ soft retry` | the frame only decoded after flipping some of the least reliable bits (Chase decoding) |
-| `+ SK1 via CRC` | the transmitter-state bit SK1, which has no RS protection, was repaired using the CRC |
+| `+ SK1 via CRC` | the transmitter-state bit SK1, which has no RS protection, was repaired using the CRC. Since 2.0.3 this is not combined with a soft retry: together they let too many corrupted frames through the CRC. |
 | date / time | the time encoded in the frame, which is the moment this frame started. `local` adds the offset transmitted in the frame (UTC+1 winter, UTC+2 summer). |
 | `leap second insertion/removal announced`, `DST change announced`, `transmitter maintenance planned (1/2/3)` | the announcement bits of the frame (maintenance: 1 = one day, 2 = a week, 3 = more than a week) |
 | `not decodable (no modulation)` | the preamble matched but the phase levels were not separable |
@@ -125,11 +125,11 @@ Every decoded frame is followed by a CLOCK line and a RAW line.
 
 | Line | Meaning |
 |---|---|
-| `frame agrees with clock, error +0.31 ms, xtal -2100 ppb` | normal case. `error` is the frame start measured by the demodulator minus the start predicted by the running clock. A quarter of it is corrected. Expect ±1 ms on good signals and a few ms on weak ones. `xtal` is the measured error of the board's 10 MHz crystal in parts per billion (−2100 ppb = 2.1 ppm slow). It is 0 for the first 10 minutes and then comes from a baseline of 10 min to 4 h. |
+| `frame agrees with clock, error +0.31 ms, xtal -2100 ppb` | normal case. `error` is the frame start measured by the demodulator minus the start predicted by the running clock. A quarter of it is corrected. Expect ±1 ms on good signals and a few ms on weak ones. `xtal` is the measured error of the board's 10 MHz crystal in parts per billion (−2100 ppb = 2.1 ppm slow). It is 0 until the rate is known: from 2 min after synchronisation if the crystal is clearly off (more than twice the measurement noise, i.e. about 17 ppm at 2 min, 7 ppm at 5 min), otherwise from 10 min; after that it comes from a baseline of 10 min to 4 h. |
 | `not synchronised yet - waiting for a second frame to confirm` | no time yet. This frame is kept as a candidate. |
 | `SYNCHRONISED - two frames agree, time set to ...` | two frames agreed with each other (their time difference matched the elapsed time within 20 ms + 200 ppm). The clock is now set. |
 | `REJECTED - frame differs from clock by N ms (kept as candidate)` | the frame passed RS and CRC but does not match the clock (more than 100 ms off). On weak signals these are miscorrected frames, typically with absurd dates. This is exactly what the original firmware copied into its clock. |
-| `STEPPED - clock was off by N ms, confirmed by two frames` | two frames that agree with each other both disagreed with the clock, so the clock was reset to them. This should practically never happen. If it does, please send the log. |
+| `STEPPED - clock was off by N ms, confirmed by three frames` | three frames that agree with each other all disagreed with the clock, so the clock was reset to them (2.0.2 and earlier: two frames). This should practically never happen. If it does, please send the log. |
 
 After an accepted, synchronising or stepping frame, LED1 lights for 0.5 s
 from the next PPS and a `$PGGUM` sentence is sent on SV2.
@@ -187,11 +187,12 @@ $PECZ,[   603.2] FRAME   #57 corr 0.86 ...*hh
   The fields are frame bytes 3–11 as received (hex, scrambled, before
   correction) and the time in seconds since the previous good frame.
 * **`$PECZ`** is a copy of every SV1 line (`DEBUG_TO_NMEA` in
-  `src/core/eczas_cfg.h`, on by default). `*` and `$` inside the text are
+  `src/core/eczas_cfg.h`). Off in the ready-made hex files since 2.0.3; build
+  with `make NMEA_DEBUG=1` to get it. `*` and `$` inside the text are
   replaced by `#`. These sentences are only sent 40–700 ms after a PPS, so
-  they never delay `$GPRMC`. NMEA/GPS software (gpsd, chrony's refclock,
-  GPS clocks) ignores unknown sentences. Set `DEBUG_TO_NMEA` to 0 if yours
-  does not.
+  they never delay `$GPRMC`. Many are longer than the 82 characters NMEA 0183
+  allows: gpsd and chrony cope, but simple NMEA readers with a small line
+  buffer (e.g. MGMBeacon's 90 bytes) do not.
 
 ### SV1 pin 1 and LEDs
 
