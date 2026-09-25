@@ -8,7 +8,7 @@
  *     -i RATE     impulsive noise bursts per second (atmospherics)
  *     -s SEED     random seed
  *     -q          summary only
- *   sim -t        codec / date self-test
+ *   sim -t        codec / date self-test, captured-frame regression
  */
 #include <math.h>
 #include <stdio.h>
@@ -29,6 +29,79 @@ static double grand(void)
 {
     double u = urand() + 1e-300, v = urand();
     return sqrt(-2 * log(u)) * cos(2 * M_PI * v);
+}
+
+/*
+ * Regression: frames captured off-air on 2026-09-25 (weak-signal bench) from
+ * the ORIGINAL firmware's $PGGUM sentences, i.e. frame bytes 3..11 as hard
+ * decisions, before correction. None is a valid frame. The last one "passes"
+ * RS(15,9) by correcting 3 symbols but its CRC is wrong (it also claims a leap
+ * second); the original firmware, which never checks the CRC, set its clock
+ * from it to 2026-10-04 15:12:20 - 9 days ahead - at 12:43:56 UTC.
+ */
+static const uint8_t captured_frames[][9] = {
+    { 0xA6, 0x66, 0xD3, 0x4B, 0x7B, 0x90, 0x8A, 0x27, 0xBD },  /* 12:24:38 */
+    { 0xA2, 0x2E, 0xD3, 0x79, 0x1B, 0xC9, 0xD7, 0xE5, 0x80 },  /* 12:27:41 */
+    { 0xE6, 0x2E, 0xD2, 0x38, 0x1A, 0x51, 0xB1, 0x7E, 0x12 },  /* 12:28:56, bad 101 */
+    { 0xA4, 0x2E, 0x96, 0x32, 0x8E, 0x4B, 0xAC, 0x48, 0xCF },  /* 12:31:56 */
+    { 0xA3, 0x2E, 0x93, 0x61, 0x9B, 0x7F, 0x93, 0x4D, 0x3C },  /* 12:33:17 */
+    { 0x26, 0x66, 0xD3, 0x8B, 0x0F, 0x79, 0xBF, 0x6A, 0xAC },  /* 12:42:05, bad 101 */
+    { 0xA2, 0x24, 0xD3, 0xBA, 0x5B, 0xEF, 0x17, 0x62, 0x6D },  /* 12:43:56, RS "ok" */
+};
+#define N_CAPTURED (int)(sizeof captured_frames / sizeof captured_frames[0])
+#define MISCORRECTED_N3 281480646UL   /* 2026-10-04 15:12:18, what RS alone yields */
+
+static int captured_frames_test(void)
+{
+    static const uint8_t pre[3] = { 0x55, 0x55, 0x60 };
+    uint8_t bits[FRAME_BITS], cw[15];
+    frame_info_t fi;
+    tk_t tk;
+    tk_result_t r1, r2, r3, r4;
+    const int64_t t0 = 1000LL * FCY_HZ;
+    const uint32_t n3 = 281218475UL;              /* 2026-09-25 12:43:45 */
+    int i, k, j, fails = 0, rejected = 0, rs_fixed;
+
+    for (i = 0; i < N_CAPTURED; i++) {
+        for (k = 0; k < FRAME_BITS; k++) {
+            uint8_t byte = k < 24 ? pre[k / 8] : captured_frames[i][k / 8 - 3];
+            bits[k] = (byte >> (7 - k % 8)) & 1;
+        }
+        if (i == N_CAPTURED - 1) {
+            /* RS alone must accept it, so it really is the CRC that rejects it */
+            for (k = 0; k < 9; k++)
+                for (cw[6 + k] = 0, j = 0; j < 4; j++) cw[6 + k] = (uint8_t)((cw[6 + k] << 1) | bits[27 + 4 * k + j]);
+            for (k = 0; k < 6; k++)
+                for (cw[k] = 0, j = 0; j < 4; j++) cw[k] = (uint8_t)((cw[k] << 1) | bits[64 + 4 * k + j]);
+            rs_fixed = frame_rs_decode(cw);
+            if (rs_fixed != 3) { printf("captured #%d: RS fixed %d, expected 3\n", i, rs_fixed); fails++; }
+        }
+        if (frame_check_bits(bits, &fi)) { printf("captured #%d: ACCEPTED, must be rejected\n", i); fails++; }
+        else rejected++;
+    }
+
+    /* Even if such a frame got past the CRC, a synchronised clock must not follow it. */
+    tk_init(&tk);
+    frame_build(n3, 2, 0, bits);
+    frame_check_bits(bits, &fi);
+    r1 = tk_frame(&tk, t0, &fi);
+    frame_build(n3 + 2, 2, 0, bits);
+    frame_check_bits(bits, &fi);
+    r2 = tk_frame(&tk, t0 + 6LL * FCY_HZ, &fi);
+    memset(&fi, 0, sizeof fi);
+    fi.n3 = MISCORRECTED_N3; fi.tz = 2; fi.ls = 1;
+    r3 = tk_frame(&tk, t0 + 9LL * FCY_HZ, &fi);
+    frame_build(n3 + 4, 2, 0, bits);
+    frame_check_bits(bits, &fi);
+    r4 = tk_frame(&tk, t0 + 12LL * FCY_HZ, &fi);
+    if (r1 != TK_CANDIDATE || r2 != TK_SYNCED || r3 != TK_REJECTED || r4 != TK_ACCEPTED) {
+        printf("captured: timekeeper results %d %d %d %d, expected %d %d %d %d\n",
+               r1, r2, r3, r4, TK_CANDIDATE, TK_SYNCED, TK_REJECTED, TK_ACCEPTED);
+        fails++;
+    }
+    printf("captured frames (2026-09-25): %d/%d rejected by decoder, miscorrected time %s by timekeeper: %s\n",
+           rejected, N_CAPTURED, r3 == TK_REJECTED ? "rejected" : "NOT rejected", fails ? "FAIL" : "ok");
+    return fails;
 }
 
 static int selftest(void)
@@ -66,6 +139,7 @@ static int selftest(void)
         }
     }
     printf("codec: ok %d wrong %d failures %d\n", ok, wrong, fails);
+    fails += captured_frames_test();
     return fails || wrong > 20;
 }
 
