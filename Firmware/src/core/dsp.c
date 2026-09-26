@@ -42,6 +42,17 @@ static const int16_t KI_Q10[4] = { 0, 13250, 2120, 530 };
 #define FREQ_RANGE      17179869L   /* +-40 Hz in NCO units */
 #define UNLOCK_ERR      DEG2PH(25)
 #define UNLOCK_BLOCKS   5000        /* 10 s */
+/* Re-acquisition after a loss of lock (a deep fade, typically at night).
+ * The frequency search (FLL) cannot be used for it: when the carrier fades
+ * more than the programme sidebands, which in USB all lie above it, the FLL
+ * measures the sidebands (+150..+200 Hz on an IC-705 recording) and runs to
+ * its +40 Hz limit; on the bench board that kept the receiver unlocked for up
+ * to 7 minutes. The carrier returns at the same frequency (its offset comes
+ * from the SI4735 crystal), so restart the PLL directly at the frequency it
+ * was last cleanly locked to and keep it within +-5 Hz of it. Only after
+ * 10 minutes of failed re-acquisition fall back to the full search. */
+#define REACQ_RANGE     2147484L                   /* +-5 Hz in NCO units */
+#define REACQ_MAX_BLOCKS (600UL * DSP_RATE_HZ)     /* 10 min */
 #define LVL0_LEARN_MAX_ERR DEG2PH(10)  /* lvl0 learns only below this loop noise */
 
 static void build_template(void)
@@ -163,6 +174,19 @@ static void pll_update(dsp_t *d, int16_t ph, int32_t re, int32_t im)
     }
     if (d->nco_freq > d->nco_freq_nominal + FREQ_RANGE) d->nco_freq = d->nco_freq_nominal + FREQ_RANGE;
     if (d->nco_freq < d->nco_freq_nominal - FREQ_RANGE) d->nco_freq = d->nco_freq_nominal - FREQ_RANGE;
+    if (d->have_lock_freq && d->pll_state != PLL_TRACK) {
+        /* re-acquiring: stay near the known carrier frequency */
+        if (d->nco_freq > d->lock_freq + REACQ_RANGE) d->nco_freq = d->lock_freq + REACQ_RANGE;
+        if (d->nco_freq < d->lock_freq - REACQ_RANGE) d->nco_freq = d->lock_freq - REACQ_RANGE;
+        if (++d->reacq_blocks > REACQ_MAX_BLOCKS) {  /* give up: full search */
+            d->have_lock_freq = 0;
+            d->pll_state = PLL_ACQ_FLL;
+            d->pll_timer = 0;
+            d->fll_re = d->fll_im = 0;
+            d->nco_freq = d->nco_freq_nominal;
+            return;
+        }
+    }
 
     ++d->pll_timer;
     if (d->pll_state == PLL_ACQ_FAST && d->pll_timer >= FAST_BLOCKS) {
@@ -173,14 +197,25 @@ static void pll_update(dsp_t *d, int16_t ph, int32_t re, int32_t im)
 
     /* lock monitor */
     d->lock_err_avg += (((err < 0 ? -err : err) << 4) - d->lock_err_avg) >> 9;
+    if (d->pll_state == PLL_TRACK && (d->lock_err_avg >> 4) < LVL0_LEARN_MAX_ERR) {
+        /* remember the carrier frequency while the lock is clean (~2 s average) */
+        if (!d->have_lock_freq) { d->lock_freq = d->nco_freq; d->have_lock_freq = 1; }
+        d->lock_freq += (d->nco_freq - d->lock_freq) >> 10;
+        d->reacq_blocks = 0;
+    }
     if (d->pll_state == PLL_TRACK) {
         if ((d->lock_err_avg >> 4) > UNLOCK_ERR) {
             if (++d->unlock_timer > UNLOCK_BLOCKS) {
-                d->pll_state = PLL_ACQ_FLL;
                 d->pll_timer = 0;
-                d->fll_re = d->fll_im = 0;
                 d->unlock_timer = 0;
-                d->nco_freq = d->nco_freq_nominal;
+                if (d->have_lock_freq) {
+                    d->pll_state = PLL_ACQ_FAST;         /* re-acquire at the known frequency */
+                    d->nco_freq = d->lock_freq;
+                } else {
+                    d->pll_state = PLL_ACQ_FLL;
+                    d->fll_re = d->fll_im = 0;
+                    d->nco_freq = d->nco_freq_nominal;
+                }
             }
         } else {
             d->unlock_timer = 0;

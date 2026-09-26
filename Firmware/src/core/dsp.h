@@ -44,6 +44,9 @@ typedef struct {
     int16_t  lvl0;               /* phase of a '0' bit relative to idle (negative) */
     int32_t  lock_err_avg;       /* IIR of |phase error| (x16) */
     uint16_t unlock_timer;
+    int32_t  lock_freq;          /* average NCO frequency while cleanly locked */
+    uint8_t  have_lock_freq;     /* lock_freq valid: re-acquire at it */
+    uint32_t reacq_blocks;       /* blocks spent re-acquiring since the last clean lock */
 
     /* Signal statistics */
     int32_t  amp_avg;            /* IIR of block amplitude */

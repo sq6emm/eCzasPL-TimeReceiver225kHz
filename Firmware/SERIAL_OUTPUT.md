@@ -42,7 +42,7 @@ The uptime is counted by the ADC sample clock since power-up, in seconds with
 #### BOOT / RADIO – start-up
 
 ```
-[     0.0] BOOT    e-CzasPL 225 kHz receiver, firmware 2.0.4 (Sep 26 2026)
+[     0.0] BOOT    e-CzasPL 225 kHz receiver, firmware 2.0.5 (Sep 26 2026)
 [     0.0] BOOT    SV1: diagnostics, SV2: NMEA ... LED4 1PPS
 SI4735: part 23 fw 60 chip D lib 7
 SI4735: loading SSB patch... done
@@ -99,7 +99,7 @@ Printed every second for the first 3 minutes after power-up, then every 10 s.
 | `carrier 1004.37 Hz (+4.37)` | frequency of the 225 kHz carrier as seen in the audio, and its offset from the nominal 1000 Hz. The offset is the SI4735 crystal error. A few Hz is normal. It should drift only slowly with temperature. |
 | PLL state | `searching carrier` – measuring the frequency (1 s steps). `locking (fast)`, `locking` – the carrier loop is settling, about 3 s each. `locked` – normal operation. |
 | `'0' bits at -33 deg` | learned phase of a `0` bit relative to the idle carrier (shown only when locked). The transmitter uses −45°. After the SI4735 filter −30…−40° is normal. Values near −18 or −60 (the limits) mean something is wrong. |
-| `noise 6 deg` | average absolute phase error of the carrier loop. Below 10° is a clean signal. 15–25° is weak. Above 25° for 10 s makes the loop start searching again. |
+| `noise 6 deg` | average absolute phase error of the carrier loop. Below 10° is a clean signal. 15–25° is weak. Above 25° for 10 s makes the loop re-acquire: since 2.0.5 at the frequency it was last cleanly locked to (`locking (fast)`), with the full search (`searching carrier`) only at power-up or after 10 minutes without a clean lock. |
 | `radio RSSI 38 dBuV SNR 21 dB` | the SI4735's own signal strength and SNR at 224 kHz (AM_RSQ_STATUS). `radio NOT RESPONDING` means the I²C read failed. |
 
 **Adjusting R27:** R27 is the feedback resistor of the MCP607 inverting

@@ -333,6 +333,7 @@ int main(int argc, char **argv)
     double fade_ph = 0, fade_a = 1;
     double xtal_ppm = 0, ref_t0 = -1; uint32_t ref_n0 = 0; int clock_wrong = 0; double first_sync = -1;
     int n_conf = 0, conf_wrong = 0, no_confirm = 0, cr, n_presync = 0; frame_info_t last_fi, sfi; int have_last = 0;
+    int ever_locked, n_unlocks; long n_unlocked, unlock_run, max_unlock_run;
 
     for (a = 1; a < argc; a++) {
         if (!strcmp(argv[a], "-t")) return selftest();
@@ -357,6 +358,7 @@ int main(int argc, char **argv)
 
     dsp_init(&dsp);
     tk_init(&tk);
+    ever_locked = 0; n_unlocks = 0; n_unlocked = 0; unlock_run = 0; max_unlock_run = 0;
     for (i = 0; i + DSP_BLOCK <= nsamp; i += DSP_BLOCK) {
         int k;
         for (k = 0; k < DSP_BLOCK; k++) {
@@ -375,6 +377,15 @@ int main(int argc, char **argv)
             blk[k] = (int16_t)v;
         }
         dsp_block(&dsp, blk);
+        /* carrier lock statistics after the first lock */
+        if (dsp.pll_state == PLL_TRACK) {
+            ever_locked = 1;
+            if (unlock_run > max_unlock_run) max_unlock_run = unlock_run;
+            unlock_run = 0;
+        } else if (ever_locked) {
+            n_unlocked++;
+            if (unlock_run++ == 0) n_unlocks++;
+        }
         if (dsp.cand_ready) {
             frame_info_t fi;
             frame_status_t st = frame_decode(dsp.cand.ph + CAND_PRE, &fi);
@@ -413,6 +424,8 @@ int main(int argc, char **argv)
                        (cr = confirm(&dsp, &tk, have_last ? &last_fi : NULL, tick_base,
                                      ref_t0, ref_n0, tsec, &conf_wrong, &sfi)) != 0) {
                 n_conf++;
+                if (!quiet)
+                    printf("%9.4f corr=%.2f confirmed (matches the expected frame)\n", tsec, dsp.cand.corr_q10 / 1024.0);
                 if (cr == 2) { last_fi = sfi; have_last = 1; if (first_sync < 0) first_sync = tsec; n_presync++; }
             } else if (st == FR_NOT_TIME) {
                 n_nottime++;
@@ -428,6 +441,9 @@ int main(int argc, char **argv)
             tk_maintain(&tk, now + (int64_t)((double)now * xtal_ppm * 1e-6));
         }
     }
+    if (unlock_run > max_unlock_run) max_unlock_run = unlock_run;
+    printf("LOCK unlocks=%d unlocked_s=%.0f longest_unlock_s=%.0f\n", n_unlocks,
+           (double)n_unlocked * DSP_BLOCK / ADC_FS_HZ, (double)max_unlock_run * DSP_BLOCK / ADC_FS_HZ);
     printf("SUMMARY snr=%g cand=%d time_ok=%d other=%d failed=%d accept=%d sync=%d step=%d cand=%d reject=%d "
            "jitter_rms=%.0fus err_mean=%.0fus rate=%dppb first_sync=%.0fs clock_wrong=%d confirmed=%d confirm_wrong=%d presync=%d\n",
            snr, n_cand, n_ok, n_nottime, n_fail, n_tk[0], n_tk[1], n_tk[2], n_tk[3], n_tk[4],

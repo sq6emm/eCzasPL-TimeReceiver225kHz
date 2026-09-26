@@ -1,11 +1,11 @@
-# e-CzasPL 225 kHz receiver – new firmware (2.0.4)
+# e-CzasPL 225 kHz receiver – new firmware (2.0.5)
 
 A from-scratch firmware for the simplified receiver (dsPIC33FJ128GP804 + SI4735)
 in this repository. It is a drop-in replacement for `uproszczony_odbiornik.hex`:
 same board, same connectors, same `$GPRMC` format.
 
-* `eczas_receiver_2.0.4.hex` – ready to program (MPLAB IPE, device dsPIC33FJ128GP804)
-* `eczas_receiver_2.0.4_64MC804.hex` – the same for boards fitted with a
+* `eczas_receiver_2.0.5.hex` – ready to program (MPLAB IPE, device dsPIC33FJ128GP804)
+* `eczas_receiver_2.0.5_64MC804.hex` – the same for boards fitted with a
   dsPIC33FJ64MC804 (same pinout; check the marking on the chip, the programmer
   reports an invalid device ID if the wrong device is selected)
 * `uproszczony_odbiornik.hex` – the original firmware, unchanged
@@ -46,6 +46,11 @@ At 0 dB, one in five frames the original accepts carries a wrong time.
   NCO mixer + 2 ms integrate-and-dump → carrier phase → decision-directed
   PLL with frequency acquisition (the SI4735's 1 kHz tone is several Hz off
   and drifts) → normalised correlation with the 27 known preamble bits.
+  After a loss of lock (deep night-time fades) the PLL restarts directly at
+  the frequency it was last cleanly locked to (2.0.5): the frequency search
+  cannot be used then, because with the carrier faded it measures the
+  programme sidebands (all above the carrier in USB) and runs to its +40 Hz
+  limit, which kept the bench board unlocked for up to 7 minutes.
 * **Decoder** (`src/core/frame.c`): max-log MAP bit detection that uses the
   real ~16 ms phase slew, RS(15,9) decoding, **CRC-8 check**, SK1 recovery
   through the CRC, Chase retries on the 7 least reliable bits, then
@@ -140,9 +145,10 @@ if the curve shows a real resonance, a peak inside the range that drops by at
 least 3 dB on both sides, does it tune to the middle of that peak; otherwise
 it keeps the standard setting. Without a tuned antenna the RSSI (mostly noise)
 still varies by ~20 dB, with its maxima at the ends of the range, and the
-firmware keeps the standard setting. On the bench, a wrongly chosen value
-(568 instead of 584 pF) was enough to stop the carrier from locking, which is
-why the check is strict.
+firmware keeps the standard setting. (A first version picked 568 pF on the
+bench, and the carrier then did not lock for minutes. That was later traced to
+the re-acquisition weakness fixed in 2.0.5, not to the capacitor; the strict
+check stays anyway.)
 
 To use it, resonate the ferrite with external C0G capacitors of about 1.0–1.1 nF
 in total (including the antenna cable), so that ANTCAP covers roughly
@@ -216,7 +222,7 @@ of the 1PPS against GPS (`RX_DELAY_US`).
 
 ## License
 
-The new firmware (`src/`, `host/`, `eczas_receiver_2.0.4*.hex`) is released
+The new firmware (`src/`, `host/`, `eczas_receiver_2.0.5*.hex`) is released
 under the MIT License in `../LICENSE`, like the rest of this repository. It is
 derived in part from e-CzasPL's original firmware (`uproszczony_odbiornik.hex`,
 © 2024 e-CzasPL, MIT): the SI4735 set-up sequence and, for the host-side
@@ -224,7 +230,7 @@ comparison model only, the original filter coefficients
 (`host/tools/orig_fir_tables.json`) were recovered from it.
 
 **Exception: the SI4735 SSB patch** (`src/hw/si4735_patch.c`, and the copy
-of it inside the `eczas_receiver_2.0.4*.hex` files) is **not** covered by the MIT
+of it inside the `eczas_receiver_2.0.5*.hex` files) is **not** covered by the MIT
 License. It is firmware for the SI4735's internal DSP and is the property of
 Silicon Labs (now Skyworks Solutions). Silicon Labs has not published it or
 put it under a public license. The same patch is distributed with the

@@ -116,6 +116,6 @@
 #define CONFIRM_MIN_Q10   820
 #endif
 
-#define FW_VERSION        "2.0.4"
+#define FW_VERSION        "2.0.5"
 
 #endif
