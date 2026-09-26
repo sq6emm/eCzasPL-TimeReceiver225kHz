@@ -1,12 +1,17 @@
 """Offline benchmark of simulator builds on the e-CzasPL recordings.
    python bench.py prep SIM [RECDIR]       -> rec/*.raw variants (+14 Hz too) + truth.json
-                                              (RECDIR holds 224k_1836.raw, 224k_2102.raw; needs numpy, scipy)
+                                              (RECDIR holds 224k_1836.raw, 224k_2102.raw and
+                                               ic705_0926.raw = wav2raw of data/ic705_ferrite_*.wav;
+                                               needs numpy, scipy)
    python bench.py run NAME=SIM [NAME=SIM ...] [--snr 3,0,-3,-6] [--seeds 4]
 Every run uses the bench board's crystal error (-23.7 ppm)."""
 import json, os, re, subprocess, sys, statistics as st
 from concurrent.futures import ThreadPoolExecutor
 D = os.path.dirname(os.path.abspath(__file__))
-SRC = {"1836": "224k_1836.raw", "2102": "224k_2102.raw"}
+SRC = {"1836": "224k_1836.raw", "2102": "224k_2102.raw",
+       # IC-705 + ferrite rod, USB 224.000 kHz, 26 Sep 2026 21:47:46 UTC, 144 s:
+       # 12 time frames, 16 other messages, 19 idle slots
+       "ic705": "ic705_0926.raw"}
 XTAL = "-23.7"
 
 def prep(sim, recdir="/data"):
