@@ -34,7 +34,7 @@ def job(args):
         if "REJECT" in l or "CAND" in l: n_rej+=1; continue
         if good: n_ok+=1; errs.append((t-(t0+3*(N-N0)))*1e3)
         else: n_bad+=1
-    import os; os.remove(fn)
+    os.remove(fn)
     return snr,seed,o_ok,o_bad,(np.mean(offs)*1e3 if offs else float('nan')),(np.std(offs)*1e3 if offs else float('nan')),n_ok,n_bad,n_rej,(np.std(errs) if errs else float('nan'))
 if __name__=="__main__":
     snrs=[float(a) for a in sys.argv[1].split(",")]; seeds=range(int(sys.argv[2]))
