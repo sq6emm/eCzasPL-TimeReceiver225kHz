@@ -371,6 +371,7 @@ int main(void)
         log_head("RADIO");
         dbg_printf("SI4735 init failed (%d), retrying\r\n", r);
     }
+    if (!r) si4735_antenna_tune();
     sampler_start();
     RCONbits.SWDTEN = 1;
     log_head("RADIO");

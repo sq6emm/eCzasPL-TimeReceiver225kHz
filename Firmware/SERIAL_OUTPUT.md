@@ -42,11 +42,14 @@ The uptime is counted by the ADC sample clock since power-up, in seconds with
 #### BOOT / RADIO – start-up
 
 ```
-[     0.0] BOOT    e-CzasPL 225 kHz receiver, firmware 2.0.3 (Sep 25 2026)
+[     0.0] BOOT    e-CzasPL 225 kHz receiver, firmware 2.0.4 (Sep 26 2026)
 [     0.0] BOOT    SV1: diagnostics, SV2: NMEA ... LED4 1PPS
 SI4735: part 23 fw 60 chip D lib 7
 SI4735: loading SSB patch... done
 SI4735: rev 23 36 30 00 00 32 30
+SI4735: standard antenna setting 0x82B8 accepted, chip uses ANTCAP 6143 (before: 6143)
+SI4735: antenna sweep, RSSI dBuV: 68 64 60 46 47 47 47 46 49 50 50 50 51 52 52 51 54 53 53 61 63 63 69 64
+SI4735: no antenna resonance in range - keeping the standard setting
 [     0.0] RADIO   tuned to 224 kHz USB, waiting for the 225 kHz carrier (1 kHz tone)
 ```
 
@@ -58,6 +61,16 @@ The `SI4735:` lines have no timestamp. They come from the radio driver:
   revision letter and `lib` is the library ID. These values are only examples.
 * `rev ...` shows bytes 1–7 of GET_REV: part number, firmware major/minor (ASCII),
   patch ID (2 bytes), component firmware major/minor (ASCII).
+* `standard antenna setting ...` (2.0.4+): what the chip did with the antenna
+  capacitor value inherited from the original firmware (0x82B8). The chip
+  clamps it to its maximum, 6143 (584 pF). `REFUSED (ERR)` would mean the
+  chip rejected the tune command.
+* `antenna sweep, RSSI dBuV: ...` (2.0.4+): the RSSI at 24 antenna capacitor
+  settings from 12 to 572 pF (steps of 24 pF). A tuned ferrite antenna shows
+  one clear peak inside the range; it is then followed by
+  `antenna tuned, ANTCAP 345.2 pF, RSSI 58 dBuV`. Without a tuned antenna the
+  line ends with `no antenna resonance in range - keeping the standard setting`.
+  The sweep is done once at power-up (about 10 s).
 * `SI4735: no response` means the radio did not answer on I²C. Check
   the 3.3 V supply, the 32.768 kHz crystal Y1 and the SDA/SCL solder joints.
 * `SI4735: loading SSB patch... FAILED` means the I²C transfer broke off

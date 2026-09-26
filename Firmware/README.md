@@ -1,11 +1,11 @@
-# e-CzasPL 225 kHz receiver – new firmware (2.0.3)
+# e-CzasPL 225 kHz receiver – new firmware (2.0.4)
 
 A from-scratch firmware for the simplified receiver (dsPIC33FJ128GP804 + SI4735)
 in this repository. It is a drop-in replacement for `uproszczony_odbiornik.hex`:
 same board, same connectors, same `$GPRMC` format.
 
-* `eczas_receiver_2.0.3.hex` – ready to program (MPLAB IPE, device dsPIC33FJ128GP804)
-* `eczas_receiver_2.0.3_64MC804.hex` – the same for boards fitted with a
+* `eczas_receiver_2.0.4.hex` – ready to program (MPLAB IPE, device dsPIC33FJ128GP804)
+* `eczas_receiver_2.0.4_64MC804.hex` – the same for boards fitted with a
   dsPIC33FJ64MC804 (same pinout; check the marking on the chip, the programmer
   reports an invalid device ID if the wrong device is selected)
 * `uproszczony_odbiornik.hex` – the original firmware, unchanged
@@ -127,6 +127,29 @@ longer than the 82 characters NMEA 0183 allows and overflow the line buffer
 of simple NMEA readers. Build with `make NMEA_DEBUG=1` to turn it on (e.g.
 for a test bench that only has SV2 connected).
 
+## Antenna and the SI4735 antenna capacitor (2.0.4)
+
+The SI4735 has an internal antenna capacitor (ANTCAP, 0–584 pF in 95 fF
+steps) meant for resonating a ferrite antenna. At 225 kHz it cannot do that
+alone: a 360 µH ferrite needs about 1.39 nF. The original firmware sends
+ANTCAP 0x82B8, which the chip accepts and clamps to its maximum (584 pF);
+2.0.4 keeps that setting and logs what the chip reports.
+
+At power-up 2.0.4 sweeps ANTCAP (about 10 s) and logs the RSSI curve. Only
+if the curve shows a real resonance, a peak inside the range that drops by at
+least 3 dB on both sides, does it tune to the middle of that peak; otherwise
+it keeps the standard setting. Without a tuned antenna the RSSI (mostly noise)
+still varies by ~20 dB, with its maxima at the ends of the range, and the
+firmware keeps the standard setting. On the bench, a wrongly chosen value
+(568 instead of 584 pF) was enough to stop the carrier from locking, which is
+why the check is strict.
+
+To use it, resonate the ferrite with external C0G capacitors of about 1.0–1.1 nF
+in total (including the antenna cable), so that ANTCAP covers roughly
+210–260 kHz around the resonance. The filter in `../doc/` does this and also
+keeps VHF/UHF out of the SI4735. Set `ANTCAP_SWEEP` to 0 in
+`src/core/eczas_cfg.h` to skip the sweep.
+
 ## Timing accuracy and calibration
 
 The frame start is taken as the encoded second, as the specification states.
@@ -193,7 +216,7 @@ of the 1PPS against GPS (`RX_DELAY_US`).
 
 ## License
 
-The new firmware (`src/`, `host/`, `eczas_receiver_2.0.3*.hex`) is released
+The new firmware (`src/`, `host/`, `eczas_receiver_2.0.4*.hex`) is released
 under the MIT License in `../LICENSE`, like the rest of this repository. It is
 derived in part from e-CzasPL's original firmware (`uproszczony_odbiornik.hex`,
 © 2024 e-CzasPL, MIT): the SI4735 set-up sequence and, for the host-side
@@ -201,7 +224,7 @@ comparison model only, the original filter coefficients
 (`host/tools/orig_fir_tables.json`) were recovered from it.
 
 **Exception: the SI4735 SSB patch** (`src/hw/si4735_patch.c`, and the copy
-of it inside the `eczas_receiver_2.0.3*.hex` files) is **not** covered by the MIT
+of it inside the `eczas_receiver_2.0.4*.hex` files) is **not** covered by the MIT
 License. It is firmware for the SI4735's internal DSP and is the property of
 Silicon Labs (now Skyworks Solutions). Silicon Labs has not published it or
 put it under a public license. The same patch is distributed with the

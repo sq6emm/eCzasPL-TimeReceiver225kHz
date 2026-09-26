@@ -82,6 +82,21 @@
 #define LEVEL_CLIP_MAX    2           /* clipped samples per second tolerated (atmospherics) */
 #define STATUS_PERIOD_S   10
 
+/* SI4735 antenna capacitor (ANTCAP, 95 fF steps). The original firmware sends
+ * 0x82B8; at power-up the receiver logs what the chip does with it. With
+ * ANTCAP_SWEEP it then sweeps 0..~584 pF (about 10 s) and keeps the value with
+ * the highest RSSI, but only if that is a real resonance: a peak inside the
+ * range that drops by ANTCAP_MIN_GAIN_DB on both sides (a tank the capacitor
+ * can tune, e.g. ferrite + external C0G capacitor). Otherwise it keeps 0x82B8,
+ * which the chip clamps to its maximum, 6143 (584 pF). Without a tank the
+ * RSSI (mostly noise) still varies by ~20 dB, with maxima at the ends. */
+#define ANTCAP_ORIGINAL   0x82B8
+#define ANTCAP_MAX        6144
+#ifndef ANTCAP_SWEEP
+#define ANTCAP_SWEEP      1
+#endif
+#define ANTCAP_MIN_GAIN_DB 3
+
 /* Position reported in $GPRMC (GUM Time and Frequency Laboratory, Warsaw). */
 #define NMEA_LAT          "5214.5098,N"
 #define NMEA_LON          "02100.0504,E"
@@ -101,6 +116,6 @@
 #define CONFIRM_MIN_Q10   820
 #endif
 
-#define FW_VERSION        "2.0.3"
+#define FW_VERSION        "2.0.4"
 
 #endif

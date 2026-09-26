@@ -9,6 +9,11 @@
  *   SSB_BFO = 0, AVC max gain = 89 dB, volume = 63 (the original; this
  *   firmware starts at VOL_START and the level control in main.c adjusts it)
  *   SSB_TUNE_FREQ 224 kHz, USB, antenna cap bytes 0x82 0xB8
+ *
+ * si4735_antenna_tune() can then sweep the internal antenna capacitor
+ * (ANTCAP, 95 fF steps up to ~584 pF) for the highest RSSI. That only helps
+ * with an external tank (e.g. 360 uH ferrite + ~1.07 nF C0G): the SI4735
+ * cannot resonate a ferrite antenna at 225 kHz on its own.
  */
 #include "board.h"
 #include "i2c.h"
@@ -18,12 +23,14 @@
 #define ADDR 0x11
 
 static uint8_t volume = VOL_START;
+static uint16_t antcap = ANTCAP_ORIGINAL;   /* sent with every tune */
 
 #define CMD_POWER_UP      0x01
 #define CMD_GET_REV       0x10
 #define CMD_POWER_DOWN    0x11
 #define CMD_SET_PROPERTY  0x12
 #define CMD_SSB_TUNE_FREQ 0x40
+#define CMD_SSB_TUNE_STATUS 0x42
 #define CMD_AM_RSQ_STATUS 0x43
 
 #define PROP_SSB_BFO           0x0100
@@ -60,11 +67,14 @@ static int set_property(uint16_t prop, uint16_t val)
     return r;
 }
 
-static int tune(uint8_t cap_h, uint8_t cap_l)
+/* Returns 0, 1 if the chip flagged the command with ERR, -1 if it didn't answer. */
+static int tune(uint16_t cap)
 {
     /* ARG1 = USB (2 << 6) | 1, as sent by the original */
-    uint8_t c[6] = { CMD_SSB_TUNE_FREQ, 0x81, 0x00, 224, cap_h, cap_l };
-    int r = cmd(c, 6);
+    uint8_t c[6] = { CMD_SSB_TUNE_FREQ, 0x81, 0x00, 224, (uint8_t)(cap >> 8), (uint8_t)cap };
+    int r;
+    if (wait_cts() < 0 || i2c_write(ADDR, c, 6)) return -1;
+    r = wait_cts();
     delay_ms(100);
     return r;
 }
@@ -117,12 +127,12 @@ int si4735_init(void)
 
     if (set_property(PROP_SSB_MODE, 0x9012)) return -4;
     set_property(PROP_RX_VOLUME, volume);
-    tune(0x00, 0x01);
+    tune(1);
     delay_ms(550);
     set_property(PROP_SSB_MODE, 0x9015);
     set_property(PROP_SSB_BFO, 0);
     set_property(PROP_AM_AVC_MAX_GAIN, 89 * 340);
-    if (tune(0x82, 0xB8)) return -5;
+    if (tune(antcap) < 0) return -5;
 
     c[0] = CMD_GET_REV;
     if (cmd(c, 1) == 0 && i2c_read(ADDR, rev, 8) == 0) {
@@ -154,4 +164,92 @@ int si4735_rsq(si4735_rsq_t *q)
     q->rssi = r[4];
     q->snr = r[5];
     return 0;
+}
+
+/* ANTCAP the chip is using now (95 fF units), or -1 */
+static int32_t read_antcap(void)
+{
+    uint8_t c[2] = { CMD_SSB_TUNE_STATUS, 0x01 }, r[8];
+    if (cmd(c, 2) || i2c_read(ADDR, r, 8)) return -1;
+    return ((uint16_t)r[6] << 8) | r[7];
+}
+
+/* sum of 4 RSSI readings (dBuV x 4) after a tune */
+static int16_t rssi4(void)
+{
+    si4735_rsq_t q;
+    int16_t s = 0;
+    uint8_t i;
+    delay_ms(50);
+    for (i = 0; i < 4; i++) {
+        if (si4735_rsq(&q)) return -1;
+        s += q.rssi;
+        delay_ms(25);
+    }
+    return s;
+}
+
+static void put_pf(uint16_t cap)          /* 95 fF steps -> "12.3 pF" */
+{
+    uint32_t ff = (uint32_t)cap * 95;
+    dbg_printf("%lu.%lu pF", (unsigned long)(ff / 1000), (unsigned long)(ff / 100 % 10));
+}
+
+/* A tank shows as one peak inside the range that falls by ANTCAP_MIN_GAIN_DB
+ * on both sides within 3 coarse steps (about 70 pF). */
+static int is_peak(const int16_t *v, uint8_t n, uint8_t k)
+{
+    int16_t lo = v[k] - ANTCAP_MIN_GAIN_DB * 4;
+    uint8_t i, l = 0, r = 0;
+    if (k < 3 || k + 3 >= n) return 0;
+    for (i = 1; i <= 3; i++) {
+        if (v[k - i] <= lo) l = 1;
+        if (v[k + i] <= lo) r = 1;
+    }
+    return l && r;
+}
+
+void si4735_antenna_tune(void)
+{
+    int32_t now = read_antcap();
+    int err = tune(antcap);
+
+    dbg_printf("SI4735: standard antenna setting 0x%04X %s, chip uses ANTCAP %ld",
+               ANTCAP_ORIGINAL, err > 0 ? "REFUSED (ERR)" : "accepted", (long)read_antcap());
+    dbg_printf(" (before: %ld)\r\n", (long)now);
+#if ANTCAP_SWEEP
+    {
+        int16_t v[24], vmax = -1;
+        uint16_t cap, best = 0, first = 0, last = 0;
+        uint8_t k, kb = 0;
+
+        dbg_puts("SI4735: antenna sweep, RSSI dBuV:");
+        for (k = 0; k < 24; k++) {                        /* coarse, 256 steps (24 pF) */
+            tune(128 + 256u * k);
+            v[k] = rssi4();
+            if (v[k] < 0) { dbg_puts(" radio error\r\n"); tune(antcap); return; }
+            dbg_printf(" %d", v[k] / 4);
+            if (v[k] > v[kb]) kb = k;
+        }
+        dbg_puts("\r\n");
+        if (!is_peak(v, 24, kb)) {
+            dbg_puts("SI4735: no antenna resonance in range - keeping the standard setting\r\n");
+            tune(antcap);
+            return;
+        }
+        best = 128 + 256u * kb;
+        for (cap = best - 256; cap <= best + 256; cap += 32) {   /* fine, 3 pF */
+            int16_t f;
+            tune(cap);
+            f = rssi4();
+            if (f > vmax) { vmax = f; first = last = cap; }
+            else if (f == vmax) last = cap;
+        }
+        antcap = (uint16_t)((first + last) / 2);          /* middle of the peak */
+        tune(antcap);
+        dbg_puts("SI4735: antenna tuned, ANTCAP ");
+        put_pf(antcap);
+        dbg_printf(", RSSI %d dBuV\r\n", vmax / 4);
+    }
+#endif
 }
