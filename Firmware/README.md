@@ -146,7 +146,7 @@ why the check is strict.
 
 To use it, resonate the ferrite with external C0G capacitors of about 1.0–1.1 nF
 in total (including the antenna cable), so that ANTCAP covers roughly
-210–260 kHz around the resonance. The filter in `../doc/` does this and also
+210–260 kHz around the resonance. The filter in `../doc/antenna-filter/antenna-filter-225kHz.pdf` (schematic, parts with TME numbers) does this and also
 keeps VHF/UHF out of the SI4735. Set `ANTCAP_SWEEP` to 0 in
 `src/core/eczas_cfg.h` to skip the sweep.
 
