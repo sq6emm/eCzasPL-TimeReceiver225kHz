@@ -10,3 +10,8 @@ English version
 
 
 
+
+Measurements
+- GUM-issue-1/ - early time frames: report for GUM with source data
+- receiver-comparison/ - e-CzasPL reception by three receivers (eCzas board, IC-705, NUCLEO-H723ZG), 27 Sep 2026
+- antenna-filter/ - proposed input filter for high-field sites
