@@ -42,8 +42,8 @@ the same slot):
   in slot S, 2.4–2.5 s early. On 27 Sep at 16:19:12 UTC the frame for 16:19:15 was
   caught independently by the IC-705 (−2472 ms) and the Nucleo (−2479 ms). These
   are two different receivers with different antennas and decoders. See
-  [GUM-issue-1](../GUM-issue-1/README.md): the report lists 9 events; 15 have been
-  seen so far.
+  [GUM-issue-1](../GUM-issue-1/README.md): report v1.2 lists 20 events (to 27 Sep
+  20:17 UTC); 3 of them were seen by both the IC-705 and the Nucleo.
 
 ## What it says about the eCzas receiver
 

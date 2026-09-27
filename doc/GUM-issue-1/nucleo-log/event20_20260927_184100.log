@@ -1,0 +1,30 @@
+# NUCLEO-H723ZG receiver log (Wroclaw, ferrite rod, direct sampling, eCzas 2.0.5 core), slot S = 2026-09-27 18:41:00 UTC, window S-30 s .. S+45 s
+# column 1: host receive time (UTC, NTP); [uptime s]; audio dump packets and TIMEMAP lines omitted
+2026-09-27T18:40:32.114+00:00 [   3746.7] FRAME   #579 not decodable, but 94% agrees with the expected frame: 2026-09-27 18:40:30 UTC - confirmed
+2026-09-27T18:40:35.317+00:00 [   3750.0] STATUS  2026-09-27 18:40:35 UTC | carrier locked, noise 8.0 deg | mixer 223520 Hz, clock +6621 ppm (LSE) | heard 579, decoded 228, confirmed 67, rejected 7 | cpu 19%, max lag 0 ms
+2026-09-27T18:40:35.718+00:00 [   3750.4] FRAME   #580 corr 37% - not decodable (snr -4 dB)
+2026-09-27T18:40:41.122+00:00 [   3755.7] FRAME   #581 corr 69% snr 5 dB, fixed 2: 2026-09-27 18:40:39 UTC
+2026-09-27T18:40:41.122+00:00 [   3755.7] CLOCK   frame agrees with clock, error -0.4 ms
+2026-09-27T18:40:44.124+00:00 [   3758.7] FRAME   #582 corr 60% snr 2 dB, fixed 3 + soft retry: 2026-09-27 18:40:42 UTC
+2026-09-27T18:40:44.124+00:00 [   3758.7] CLOCK   frame agrees with clock, error +0.5 ms
+2026-09-27T18:40:45.325+00:00 [   3760.0] STATUS  2026-09-27 18:40:45 UTC | carrier locked, noise 7.5 deg | mixer 223520 Hz, clock +6622 ppm (LSE) | heard 582, decoded 230, confirmed 67, rejected 7 | cpu 19%, max lag 0 ms
+2026-09-27T18:40:46.927+00:00 [   3761.5] FRAME   #583 corr 29% - not decodable (snr 0 dB)
+2026-09-27T18:40:50.930+00:00 [   3765.6] FRAME   #584 corr 29% - not decodable (snr 0 dB)
+2026-09-27T18:40:55.334+00:00 [   3770.0] STATUS  2026-09-27 18:40:55 UTC | carrier locked, noise 7.4 deg | mixer 223508 Hz, clock +6675 ppm (LSE) | heard 584, decoded 230, confirmed 67, rejected 7 | cpu 19%, max lag 0 ms
+2026-09-27T18:40:56.134+00:00 [   3770.7] FRAME   #585 not decodable, but 89% agrees with the expected frame: 2026-09-27 18:40:54 UTC - confirmed
+2026-09-27T18:41:02.540+00:00 [   3777.2] FRAME   #586 corr 72% snr 5 dB, fixed 3: 2026-09-27 18:41:03 UTC
+2026-09-27T18:41:02.540+00:00 [   3777.2] CLOCK   REJECTED - differs from clock by -2420 ms
+2026-09-27T18:41:04.141+00:00 [   3778.7] FRAME   #587 corr 35% - not decodable (snr -5 dB)
+2026-09-27T18:41:05.342+00:00 [   3780.0] STATUS  2026-09-27 18:41:05 UTC | carrier locked, noise 7.0 deg | mixer 223491 Hz, clock +6751 ppm (LSE) | heard 587, decoded 231, confirmed 68, rejected 8 | cpu 19%, max lag 0 ms
+2026-09-27T18:41:11.546+00:00 [   3786.1] FRAME   #588 corr 36% - not decodable (snr -6 dB)
+2026-09-27T18:41:15.349+00:00 [   3790.0] STATUS  2026-09-27 18:41:15 UTC | carrier locked, noise 6.3 deg | mixer 223507 Hz, clock +6682 ppm (LSE) | heard 588, decoded 231, confirmed 68, rejected 8 | cpu 19%, max lag 0 ms
+2026-09-27T18:41:17.153+00:00 [   3791.7] FRAME   #589 corr 75% snr 6 dB, fixed 1: 2026-09-27 18:41:15 UTC
+2026-09-27T18:41:17.153+00:00 [   3791.7] CLOCK   frame agrees with clock, error -0.3 ms
+2026-09-27T18:41:25.368+00:00 [   3800.0] STATUS  2026-09-27 18:41:25 UTC | carrier locked, noise 6.5 deg | mixer 223490 Hz, clock +6757 ppm (LSE) | heard 589, decoded 232, confirmed 68, rejected 8 | cpu 19%, max lag 0 ms
+2026-09-27T18:41:25.970+00:00 [   3800.7] FRAME   #590 corr 66% snr 4 dB, fixed 1: 2026-09-27 18:41:24 UTC
+2026-09-27T18:41:25.970+00:00 [   3800.7] CLOCK   frame agrees with clock, error -0.1 ms
+2026-09-27T18:41:32.576+00:00 [   3807.1] FRAME   #591 corr 48% - not decodable (snr -1 dB)
+2026-09-27T18:41:33.977+00:00 [   3808.6] FRAME   #592 corr 34% - not decodable (snr 0 dB)
+2026-09-27T18:41:35.378+00:00 [   3810.0] STATUS  2026-09-27 18:41:35 UTC | carrier locked, noise 7.6 deg | mixer 223530 Hz, clock +6576 ppm (LSE) | heard 592, decoded 233, confirmed 68, rejected 8 | cpu 19%, max lag 0 ms
+2026-09-27T18:41:41.583+00:00 [   3816.1] FRAME   #593 corr 47% - not decodable (snr -4 dB)
+2026-09-27T18:41:45.387+00:00 [   3820.0] STATUS  2026-09-27 18:41:45 UTC | carrier locked, noise 6.8 deg | mixer 223498 Hz, clock +6721 ppm (LSE) | heard 593, decoded 233, confirmed 68, rejected 8 | cpu 19%, max lag 0 ms
