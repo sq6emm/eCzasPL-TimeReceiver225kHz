@@ -4,17 +4,19 @@ Raport dla GUM (Główny Urząd Miar) wraz z danymi źródłowymi.
 Report for GUM (Central Office of Measures) with its source data.
 
 **Raport / report:** [`eCzasPL_early_frames_2026-09-27.pdf`](eCzasPL_early_frames_2026-09-27.pdf)
-(PL str. 1–4, EN pages 5–6)
+(PL str. 1–4, EN pages 5–6), wersja / version 1.1
 
 ## W skrócie / in short
 
-8 razy (25–27.09.2026) poprawna ramka czasu slotu S+3 została nadana w slocie S,
+9 razy (25–27.09.2026) poprawna ramka czasu slotu S+3 została nadana w slocie S,
 0,52–0,60 s po jego początku, czyli 2,40–2,48 s za wcześnie; slot S+3 był pusty.
 Zarejestrowały to dwa niezależne odbiorniki (Legnica, Wrocław), zdarzenie 8 oba jednocześnie.
+We Wrocławiu: 3 na 3 195 ramek czasu (ok. 1 na 1 070).
 
-On 8 occasions (25–27 Sep 2026) a valid time frame of slot S+3 was transmitted in
+On 9 occasions (25–27 Sep 2026) a valid time frame of slot S+3 was transmitted in
 slot S, 0.52–0.60 s after its start, i.e. 2.40–2.48 s early; slot S+3 stayed empty.
 Seen by two independent receivers (Legnica, Wrocław), event 8 by both at once.
+In Wrocław: 3 in 3,195 time frames (about 1 in 1,070).
 
 | # | Slot S (UTC) | Czas w ramce / time in frame | Odchyłka / offset | Odbiornik / receiver |
 |---|---|---|---|---|
@@ -26,6 +28,7 @@ Seen by two independent receivers (Legnica, Wrocław), event 8 by both at once.
 | 6 | 2026-09-26 15:49:48 | 15:49:51 | −2419 ms | Legnica |
 | 7 | 2026-09-27 00:02:57 | 00:03:00 | −2476 ms | Wrocław |
 | 8 | 2026-09-27 06:37:15 | 06:37:18 | −2401 ms | Wrocław + Legnica |
+| 9 | 2026-09-27 08:27:51 | 08:27:54 | −2443 ms | Wrocław |
 
 ## Zawartość / contents
 
@@ -33,8 +36,9 @@ Seen by two independent receivers (Legnica, Wrocław), event 8 by both at once.
 |---|---|---|
 | `recordings/ic705_early_frame_20260927_0002.wav` | Zdarzenie 7, 120 s od 00:02:00,000 UTC; wczesna ramka od 57,52 s | Event 7, 120 s from 00:02:00.000 UTC; early frame at 57.52 s |
 | `recordings/ic705_early_frame_20260927_0636.wav` | Zdarzenie 8, 120 s od 06:36:30,000 UTC; wczesna ramka od 45,60 s | Event 8, 120 s from 06:36:30.000 UTC; early frame at 45.60 s |
-| `legnica-log/event*.log` | Dziennik odbiornika z Legnicy, S−30 s … S+45 s | Legnica receiver log, S−30 s … S+45 s |
-| `ic705-wroclaw/slots.csv` | Każdy slot 3 s nocy 26/27.09 (22:11–07:30 UTC): treść, CRC, wynik dekodera | Every 3-s slot of the night 26/27.09: content, CRC, decoder result |
+| `recordings/ic705_early_frame_20260927_0827.wav` | Zdarzenie 9, 120 s od 08:27:00,000 UTC; wczesna ramka od 51,56 s | Event 9, 120 s from 08:27:00.000 UTC; early frame at 51.56 s |
+| `legnica-log/event*.log` | Dziennik odbiornika z Legnicy, S−30 s … S+45 s (dla zdarzenia 9 bez ramek – zbyt słaby odbiór) | Legnica receiver log, S−30 s … S+45 s (no frames for event 9 – reception too weak) |
+| `ic705-wroclaw/slots.csv` | Każdy slot 3 s, 26.09 22:11 – 27.09 09:00 UTC (12 885 slotów): treść, CRC, wynik dekodera | Every 3-s slot, 26.09 22:11 – 27.09 09:00 UTC (12,885 slots): content, CRC, decoder result |
 | `ic705-wroclaw/frames.csv` | Każda zdekodowana ramka i jej odchyłka od własnego slotu | Every decoded frame and its offset from its own slot |
 | `figures/` | Rysunki z raportu (faza nośnej) | Report figures (carrier phase) |
 | `tools/` | Skrypty: klasyfikacja slotów, rysunki, PDF | Scripts: slot classification, figures, PDF |

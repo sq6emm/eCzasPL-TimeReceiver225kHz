@@ -4,7 +4,8 @@ import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
 sys.path.insert(0,"/codec"); from eczas_codec import check_frame, make_frame
 plt.rcParams.update({"font.family":"DejaVu Sans","font.size":9})
 EV=[dict(name="ev1",file="20260927_000058.wav",med=-0.638,slot="2026-09-27 00:02:57",early=2.4763,N=281260860),
-    dict(name="ev2",file="20260927_063059.wav",med=-0.096,slot="2026-09-27 06:37:15",early=2.4008,N=281268746)]
+    dict(name="ev2",file="20260927_063059.wav",med=-0.096,slot="2026-09-27 06:37:15",early=2.4008,N=281268746),
+    dict(name="ev3",file="20260927_082059.wav",med=-0.235,slot="2026-09-27 08:27:51",early=2.4427,N=281270958)]
 out={}
 for e in EV:
     fs,x=wf.read("/in/"+e["file"]); x=x.astype(float)
