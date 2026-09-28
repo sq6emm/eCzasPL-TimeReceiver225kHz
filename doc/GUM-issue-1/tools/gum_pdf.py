@@ -53,10 +53,23 @@ EV = [  # slot S, content, offset ms, start in slot, where, snr, rs, raw, clean
     ("2026-09-27 16:19:12", "16:19:15", -2472, "0.528", "Wrocław IC-705 + NUCLEO", "9 dB", "1", "55 55 60 A2 26 AA 8D 8B C2 0F FC A5", "55 55 60 A2 26 AA 8D 8B C2 0F FC A5"),
     ("2026-09-27 18:30:15", "18:30:18", -2435, "0.565", "Wrocław IC-705 + NUCLEO", "11 dB", "0", "55 55 60 A2 25 51 92 0B D2 5E 0C 02", "55 55 60 A2 25 51 92 0B D2 5E 0C 02"),
     ("2026-09-27 18:41:00", "18:41:03", -2416, "0.584", "Wrocław IC-705 + NUCLEO", "12 dB", "0", "55 55 60 A2 25 50 07 8B F6 01 51 40", "55 55 60 A2 25 50 07 8B F6 01 51 40"),
+    # v1.3: events 21-30 (tools/gum_events_21_30.py, events_21_30.json)
+    ("2026-09-27 23:20:00", "23:20:03", -2417, "0.583", "Wrocław IC-705 (NUCLEO‡, Legnica‡)", "12 dB", "0", "55 55 60 A2 25 45 7D 8B BB A9 E4 02", "55 55 60 A2 25 45 7D 8B BB A9 E4 02"),
+    ("2026-09-27 23:20:36", "23:20:39", -2439, "0.561", "Wrocław IC-705 + NUCLEO", "12 dB", "0", "55 55 60 A2 25 45 7B 8B 26 FD 0A 7C", "55 55 60 A2 25 45 7B 8B 26 FD 0A 7C"),
+    ("2026-09-28 00:13:57", "00:14:00", -2444, "0.556", "Wrocław IC-705 + NUCLEO", "14 dB", "0", "55 55 60 A2 05 47 00 0B 69 9D E3 03", "55 55 60 A2 25 47 01 0B 69 9D E3 03"),
+    ("2026-09-28 03:06:39", "03:06:42", -2460, "0.540", "Wrocław NUCLEO", "5 dB", "1", "–", "55 55 60 A2 25 4C 46 0B 52 32 BE DF"),
+    ("2026-09-28 03:21:54", "03:21:57", -2440, "0.560", "Wrocław NUCLEO", "6 dB", "0", "–", "55 55 60 A2 25 4C EE 8B 3C ED F2 E6"),
+    ("2026-09-28 06:40:15", "06:40:18", -2454, "0.546", "Wrocław IC-705 + NUCLEO (Legnica‡)", "13 dB", "0", "55 55 60 A2 25 74 2E 0B E7 F6 D3 32", "55 55 60 A2 25 74 2E 0B E7 F6 D3 32"),
+    ("2026-09-28 08:32:36", "08:32:39", -2481, "0.519", "Wrocław IC-705 + NUCLEO", "12 dB", "0", "55 55 60 A2 25 70 8B 8B A3 84 17 49", "55 55 60 A2 25 70 8B 8B A3 94 97 49"),
+    ("2026-09-28 08:34:00", "08:34:03", -2444, "0.556", "Wrocław IC-705 + NUCLEO", "15 dB", "0", "55 55 60 A2 25 70 99 8B 06 1B 5B 34", "55 55 60 A2 25 70 99 8B 06 1B 5B 34"),
+    ("2026-09-28 11:02:00", "11:02:03", -2460, "0.540", "KiwiSDR Řevnice CZ (NUCLEO‡)", "16 dB", "0", "55 55 60 A2 25 7E D1 8B BB FF 8E EB", "55 55 60 A2 25 7E D1 8B BB FF 8E EB"),
+    ("2026-09-28 11:11:09", "11:11:12", -2440, "0.560", "KiwiSDR Řevnice CZ (Legnica‡)", "16 dB", "0", "55 55 60 A2 25 7E B5 0B D7 D2 F7 C3", "55 55 60 A2 25 7E B5 0B D7 D2 F7 C3"),
 ]
 N = {"23:47:15": 281231745, "04:44:39": 281237693, "07:12:03": 281240641, "11:12:24": 281245448,
      "11:35:30": 281245910, "15:49:51": 281250997, "00:03:00": 281260860, "06:37:18": 281268746, "08:27:54": 281270958,
-     "08:51:45": 281271435, "11:46:03": 281274921, "12:07:51": 281275357, "13:04:30": 281276490, "13:17:03": 281276741, "13:18:27": 281276769, "13:19:51": 281276797, "13:21:42": 281276834, "16:19:15": 281280385, "18:30:18": 281283006, "18:41:03": 281283221}
+     "08:51:45": 281271435, "11:46:03": 281274921, "12:07:51": 281275357, "13:04:30": 281276490, "13:17:03": 281276741, "13:18:27": 281276769, "13:19:51": 281276797, "13:21:42": 281276834, "16:19:15": 281280385, "18:30:18": 281283006, "18:41:03": 281283221,
+     "23:20:03": 281288801, "23:20:39": 281288813, "00:14:00": 281289880, "03:06:42": 281293334, "03:21:57": 281293639,
+     "06:40:18": 281297606, "08:32:39": 281299853, "08:34:03": 281299881, "11:02:03": 281302841, "11:11:12": 281303024}
 
 
 def ev_table(lang):
@@ -131,28 +144,31 @@ s = []
 # ================================================================ title page
 s += [P("Ramki czasu e-CzasPL Radio nadawane przedwcześnie o ok. 2,4 s", "title"),
       P("Time frames of e-CzasPL Radio transmitted about 2.4 s early", "title"),
-      P("Obserwacje z trzech niezależnych odbiorników 225 kHz, 25–27 września 2026 r.<br/>"
-        "Observations with three independent 225 kHz receivers, 25–27 September 2026", "sub"),
-      P("Dawid SQ6EMM · 27.09.2026 · wersja 1.2 (przypadki 10–20 / events 10–20 added)", "sub"), Spacer(1, 6)]
+      P("Obserwacje z czterech niezależnych odbiorników 225 kHz w trzech miejscach, 25–28 września 2026 r.<br/>"
+        "Observations with four independent 225 kHz receivers at three locations, 25–28 September 2026", "sub"),
+      P("Dawid SQ6EMM · 28.09.2026 · wersja 1.3 (przypadki 21–30, w tym odbiornik KiwiSDR w Czechach / "
+        "events 21–30 added, including a KiwiSDR receiver in the Czech Republic)", "sub"), Spacer(1, 6)]
 s.append(summary_box(
-    "<b>Streszczenie.</b> Zaobserwowaliśmy 20 przypadków, w których poprawna ramka czasu (CRC i Reed-Solomon "
+    "<b>Streszczenie.</b> Zaobserwowaliśmy 30 przypadków (25–28.09), w których poprawna ramka czasu (CRC i Reed-Solomon "
     "zgodne) przeznaczona dla slotu S+3 została nadana w poprzednim slocie S, z opóźnieniem 0,52–0,60 s "
     "względem początku slotu S – czyli o 2,40–2,48 s za wcześnie. Właściwy slot S+3 pozostawał pusty. "
-    "Zjawisko zarejestrowały trzy niezależne odbiorniki (Legnica; we Wrocławiu, 65 km dalej: ICOM IC-705 "
-    "oraz odbiornik z bezpośrednim próbkowaniem na STM32 – różny sprzęt, anteny i demodulatory), "
-    "w czterech przypadkach dwa jednocześnie – jest to więc cecha nadawanego sygnału, a nie odbiornika. "
-    "Częstość we Wrocławiu: 14 na 6 293 ramki czasu (ok. 1 na 450); 27.09 od godz. 9 UTC częściej "
-    "(11 na 3 098, ok. 1 na 280), w tym 4 przypadki w ciągu 5 minut.<br/><br/>"
-    "<b>Summary.</b> We observed 20 cases in which a valid time frame (CRC and Reed-Solomon consistent) "
+    "Zjawisko zarejestrowały cztery niezależne odbiorniki w trzech miejscach (Legnica; we Wrocławiu, 65 km "
+    "dalej: ICOM IC-705 oraz odbiornik z bezpośrednim próbkowaniem na STM32; publiczny odbiornik KiwiSDR "
+    "w Řevnicach w Czechach, 239 km od Wrocławia, z czasem GPS – różny sprzęt, anteny i demodulatory), "
+    "w 9 przypadkach dwa jednocześnie – jest to więc cecha nadawanego sygnału, a nie odbiornika ani "
+    "miejsca odbioru. Częstość we Wrocławiu (IC-705): 20 na 8 907 ramek czasu (ok. 1 na 450); "
+    "w Řevnicach 2 na 354 ramki czasu w ciągu 80 minut.<br/><br/>"
+    "<b>Summary.</b> We observed 30 cases (25–28 Sep) in which a valid time frame (CRC and Reed-Solomon consistent) "
     "belonging to slot S+3 was transmitted in the preceding slot S, starting 0.52–0.60 s after the "
     "beginning of slot S – i.e. 2.40–2.48 s early. The proper slot S+3 stayed empty. The effect was "
-    "recorded by three independent receivers (Legnica; in Wrocław, 65 km away, an ICOM IC-705 and a "
-    "direct-sampling STM32 receiver – different hardware, antennas and demodulators), in four cases by "
-    "two at the same time, so it is a property of the transmitted signal, not of a receiver. Rate in "
-    "Wrocław: 14 in 6,293 time frames (about 1 in 450); more often since 09 UTC on 27.09 (11 in 3,098, "
-    "about 1 in 280), including 4 events within 5 minutes."))
+    "recorded by four independent receivers at three locations (Legnica; in Wrocław, 65 km away, an ICOM "
+    "IC-705 and a direct-sampling STM32 receiver; a public KiwiSDR receiver in Řevnice, Czech Republic, "
+    "239 km from Wrocław, with GPS time – different hardware, antennas and demodulators), in 9 cases by "
+    "two at the same time, so it is a property of the transmitted signal, not of a receiver or a "
+    "receiving site. Rate in Wrocław (IC-705): 20 in 8,907 time frames (about 1 in 450); in Řevnice 2 in "
+    "354 time frames within 80 minutes."))
 s.append(Spacer(1, 8))
-s.append(P("Polski: strony 1–5 · English: pages 6–8 · Rysunki / figures 1–3 w części polskiej, "
+s.append(P("Polski: strony 1–6 · English: pages 7–10 · Rysunki / figures 1–3 w części polskiej, "
            "referenced from the English part.", "cap"))
 
 # ================================================================ POLISH
@@ -172,28 +188,37 @@ s += [P("1. Opis zjawiska", "h1"),
       LI("<b>Wrocław, IC-705</b> – ICOM IC-705, USB 224,000 kHz, zapis audio 8 kHz (komputer "
          "synchronizowany NTP); antena ferrytowa, od 27.09 ok. 14:33 UTC ramowa 12×12 cm. Nagrania "
          "analizowane tym samym algorytmem dekodowania oraz niezależnym prostym demodulatorem fazy. "
-         "Obserwacja 26.09 22:11 – 27.09 20:17 UTC (26 257 slotów, 6 293 ramki czasu; przerwa "
-         "11:01–11:17 UTC przy przeniesieniu rejestratora)."),
+         "Obserwacja 26.09 22:11 – 28.09 09:27 UTC (41 942 sloty, 8 907 ramek czasu; przerwy 27.09 "
+         "11:01–11:17 UTC przy przeniesieniu rejestratora i 28.09 01:05–04:51 UTC – rozładowany akumulator)."),
       LI("<b>Wrocław, NUCLEO</b> – odbiornik z bezpośrednim próbkowaniem (STM32H723, przetwornik ADC "
          "1 MS/s, antena ferrytowa strojona na ok. 217 kHz, podstawa czasu z kwarcu 32,768 kHz), z tym "
          "samym algorytmem dekodowania co w Legnicy. Niezależny od IC-705 (własna antena, tor i zegar). "
-         "Od 27.09 14:47 UTC."),
+         "Od 27.09 14:47 UTC; od 27.09 ok. 23 UTC odbiornik koherentny (mieszacz synchronizowany z "
+         "kwarcem 32,768 kHz), dekoder ramek i zegar bez zmian."),
+      LI("<b>Řevnice (Czechy), KiwiSDR</b> – publiczny odbiornik „Central Czechia SDR” (KiwiSDR, antena "
+         "ramowa MLA-30+), 453 km od nadajnika w Solcu Kujawskim, 239 km od Wrocławia. Zapis IQ 225 kHz "
+         "±3 kHz, 12 kHz; każdy blok 512 próbek ma znacznik czasu GPS odbiornika, więc oś czasu nagrania "
+         "jest czasem GPS. Nagrania analizowane tym samym algorytmem co nagrania IC-705. Od 28.09 10:22 UTC."),
       P("3. Zaobserwowane przypadki", "h1"),
       ev_table("pl"),
       P("Odchyłka = czas początku ramki minus początek slotu, którego czas ramka zawiera (S+3). "
         "* dekodowanie z poprawką miękką (Chase). † w Legnicy ramka została wykryta ok. 0,5 s później niż "
-        "zwykłe ramki, ale przy SNR 1 dB nie dała się zdekodować. ‡ w Legnicy niezdekodowane wykrycie ramki "
+        "zwykłe ramki, ale przy SNR 1 dB nie dała się zdekodować. ‡ niezdekodowane wykrycie ramki "
         "w miejscu przedwczesnej ramki (słaba przesłanka – podobne wykrycia zdarzają się też bez niej). "
-        "Przypadki 1–6 zdekodowane w Legnicy, 7–20 we Wrocławiu przez IC-705, 18–20 także przez NUCLEO "
-        "(odchyłki −2479, −2440 i −2420 ms). Od 26.09 16 UTC odbiór w Legnicy jest słaby (lokalne "
-        "zakłócenia).", "cap"),
+        "Przypadki 1–6 zdekodowane w Legnicy, 7–23 i 26–28 we Wrocławiu przez IC-705; NUCLEO: 18–20, 22, 23, "
+        "26–28 jednocześnie z IC-705 (odchyłki −2479, −2440, −2420, −2440, −2439, −2459, −2480, −2439 ms), "
+        "24–25 sam (IC-705 wyłączony); 29–30 zdekodowane w Řevnicach (KiwiSDR). Od 26.09 16 UTC odbiór "
+        "w Legnicy jest słaby (lokalne zakłócenia).", "cap"),
       P("4. Przykładowe dane", "h1"),
       P("Tabela 2 zawiera bajty odebrane (przed korekcją błędów) i poprawną ramkę obliczoną dla tego samego "
         "N. Różnice wynikają wyłącznie z błędów transmisji przy niskim SNR i są usuwane przez kod RS – "
         "ramki są prawidłowymi ramkami czasu."),
       raw_table("pl"), P("Tabela 2 / Table 2. Bajty 1–12 ramki (szesnastkowo) / frame bytes 1–12 (hex). "
-                         "10–20: prosty demodulator fazy na nagraniach IC-705, bez błędów bitowych / "
-                         "simple phase demodulator on the IC-705 recordings, no bit errors.", "cap"),
+                         "10–23, 26–28: prosty demodulator fazy na nagraniach IC-705 (23 i 27: po 2 błędy bitowe, "
+                         "pozostałe bez błędów); 29–30: to samo na nagraniach KiwiSDR, bez błędów; 24–25: tylko "
+                         "NUCLEO, odebrane bajty nie są zapisywane / simple phase demodulator on the IC-705 "
+                         "recordings (23 and 27: 2 bit errors each, the others none); 29–30: the same on the "
+                         "KiwiSDR recordings, no bit errors; 24–25: NUCLEO only, received bytes not logged.", "cap"),
       KeepTogether([fig("/o/ev1_timeline.png"),
                     P("Rys. 1 / Fig. 1. Faza nośnej (IC-705, Wrocław), 27.09.2026 00:02:48–00:03:12 UTC. "
                       "Zwykłe ramki zaczynają się na granicach slotów (:48, :51, :03, :09). W slocie :57 "
@@ -210,12 +235,17 @@ s += [P("1. Opis zjawiska", "h1"),
                       "the frame for 06:37:18 starts 0.599 s into slot :15; slot :18 is empty.", "cap")]),
       P("5. Charakterystyka", "h1"),
       LI("Treść: zawsze poprawna ramka czasu slotu S+3 (nie powtórzenie ani uszkodzenie ramki slotu S)."),
-      LI("Położenie: start 0,52–0,60 s po początku slotu S (rozrzut ok. 80 ms, wszystkie 20 przypadków), podczas gdy zwykłe ramki "
+      LI("Położenie: start 0,52–0,60 s po początku slotu S (rozrzut ok. 80 ms, wszystkie 30 przypadków), podczas gdy zwykłe ramki "
          "zaczynają się na granicy slotu z rozrzutem poniżej kilku milisekund."),
       LI("Slot S+3 pozostaje pusty – ramka jest przesunięta, a nie zdublowana. Slot S przed ramką jest pusty."),
-      LI("Częstość: we Wrocławiu 14 przypadków na 6 293 ramki czasu (ok. 1 na 450): w nocy 26/27.09 "
-         "3 na 3 195, 27.09 od 9 UTC 11 na 3 098 (ok. 1 na 280). W Legnicy 6 zdekodowanych w ciągu ok. "
-         "16 godzin. Występują o różnych porach doby, także seriami: 13:17, 13:18, 13:19 i 13:21 UTC 27.09."),
+      LI("Częstość: we Wrocławiu (IC-705) 20 przypadków na 8 907 ramek czasu (ok. 1 na 450): w nocy 26/27.09 "
+         "3 na 3 195, 27.09 od 9 UTC 11 na 3 098 (ok. 1 na 280), 27.09 20:17 – 28.09 09:27 6 na 2 616. "
+         "W Legnicy 6 zdekodowanych w ciągu ok. 16 godzin, w Řevnicach 2 na 354 w ciągu 80 minut. "
+         "Występują o różnych porach doby, także seriami: 13:17, 13:18, 13:19 i 13:21 UTC 27.09; "
+         "23:20:00 i 23:20:36 UTC 27.09; 08:32:36 i 08:34:00 UTC 28.09."),
+      LI("Ten sam przebieg w odległym miejscu: w Řevnicach (KiwiSDR, oś czasu GPS) ramki 29 i 30 odebrano bez "
+         "błędów bitowych; zaczynały się 0,555 i 0,575 s po sekundzie GPS rozpoczynającej slot S "
+         "(z propagacją ok. 1,5 ms), a slot S+3 był pusty."),
       P("6. Skutki dla odbiorników", "h1"),
       P("Odbiornik, który przyjmuje czas z pojedynczej poprawnej ramki i odnosi go do chwili jej odbioru, "
         "ustawi zegar o ok. 2,4–2,5 s za wcześnie (lub z błędem o jeden slot). Ramka ma poprawne CRC i RS, "
@@ -236,10 +266,13 @@ s += [P("1. Opis zjawiska", "h1"),
         "<b>github.com/sq6emm/eCzasPL-TimeReceiver225kHz</b>, katalog <b>doc/GUM-issue-1</b>:", "pl"),
       LI("recordings/ – nagrania IC-705 (WAV 8 kHz mono, USB 224,000 kHz): przypadki 7, 8, 9, 18, 19, 20 "
          "(po 120 s od 00:02:00, 06:36:30, 08:27:00, 16:18:30, 18:29:30, 18:40:30 UTC) oraz 14–17 "
-         "(360 s od 13:16:30 UTC);"),
-      LI("legnica-log/ – fragmenty dziennika odbiornika z Legnicy dla wszystkich 20 przypadków "
-         "(linie FRAME, CLOCK, RAW, SIGNAL); nucleo-log/ – dziennik NUCLEO dla przypadków 18–20;"),
-      LI("ic705-wroclaw/ – klasyfikacja wszystkich 26 257 slotów 26.09 22:11 – 27.09 20:17 (slots.csv) "
+         "(360 s od 13:16:30 UTC), 21–22 (180 s od 23:19:30), 23 (120 s od 00:13:27), 26 (120 s od "
+         "06:39:45), 27–28 (180 s od 08:32:06); nagrania KiwiSDR z Řevnic przetworzone do tej samej postaci, "
+         "oś czasu GPS: 29 (120 s od 11:01:30,000), 30 (120 s od 11:10:39,000);"),
+      LI("legnica-log/ – fragmenty dziennika odbiornika z Legnicy dla wszystkich 30 przypadków "
+         "(linie FRAME, CLOCK, RAW, SIGNAL); nucleo-log/ – dziennik NUCLEO dla przypadków 18–30;"),
+      LI("kiwi-revnice/ – to samo dla odbiornika KiwiSDR w Řevnicach, 28.09 10:20–11:40 UTC (1 592 sloty);"),
+      LI("ic705-wroclaw/ – klasyfikacja wszystkich 41 942 slotów 26.09 22:11 – 28.09 09:27 (slots.csv) "
          "oraz wszystkie zdekodowane ramki z odchyłką czasu (frames.csv);"),
       LI("figures/, tools/ – rysunki i skrypty, którymi je wykonano."),
       P("Pełne nagrania nocy 26/27.09 (ok. 470 MB) udostępnimy na życzenie.", "pl"),
@@ -261,33 +294,47 @@ s += [P("1. Description", "h1"),
       LI("<b>Wrocław, IC-705</b> – ICOM IC-705, USB 224.000 kHz, 8 kHz audio recording (NTP-synchronised "
          "computer); ferrite rod, from about 14:33 UTC on 27.09 a 12×12 cm frame loop. Recordings analysed "
          "with the same decoding algorithm and with an independent simple phase demodulator. 26.09 22:11 – "
-         "27.09 20:17 UTC (26,257 slots, 6,293 time frames; gap 11:01–11:17 UTC when the recorder moved)."),
+         "28.09 09:27 UTC (41,942 slots, 8,907 time frames; gaps 11:01–11:17 UTC on 27.09 when the recorder "
+         "moved and 01:05–04:51 UTC on 28.09, flat battery)."),
       LI("<b>Wrocław, NUCLEO</b> – a direct-sampling receiver (STM32H723, 1 MS/s ADC, ferrite rod tuned "
          "to about 217 kHz, time base from a 32.768 kHz crystal) running the same decoding algorithm as "
-         "Legnica. Independent of the IC-705 (own antenna, front end and clock). From 27.09 14:47 UTC."),
+         "Legnica. Independent of the IC-705 (own antenna, front end and clock). From 27.09 14:47 UTC; "
+         "from about 23 UTC on 27.09 a carrier-coherent receiver (mixer locked to the 32.768 kHz crystal), "
+         "frame decoder and clock unchanged."),
+      LI("<b>Řevnice (Czech Republic), KiwiSDR</b> – the public receiver “Central Czechia SDR” (KiwiSDR, "
+         "MLA-30+ loop), 453 km from the transmitter in Solec Kujawski, 239 km from Wrocław. IQ recording "
+         "225 kHz ±3 kHz at 12 kHz; every block of 512 samples carries the receiver's GPS time, so the "
+         "recording's time axis is GPS time. Analysed with the same algorithm as the IC-705 recordings. "
+         "From 28.09 10:22 UTC."),
       P("3. Observed events", "h1"),
       ev_table("en"),
       P("Offset = frame start minus the start of the slot whose time the frame carries (S+3). "
         "* decoded with a soft retry (Chase). † in Legnica the frame was detected about 0.5 s later than "
-        "regular frames but could not be decoded at 1 dB SNR. ‡ in Legnica an undecodable detection at the "
-        "position of the early frame (weak evidence – such detections also occur without one). Events 1–6 "
-        "were decoded in Legnica, 7–20 in Wrocław by the IC-705, 18–20 also by the NUCLEO (offsets −2479, "
-        "−2440 and −2420 ms). Since 26.09 16 UTC reception in Legnica is poor (local interference).", "cap"),
+        "regular frames but could not be decoded at 1 dB SNR. ‡ an undecodable detection at the position "
+        "of the early frame (weak evidence – such detections also occur without one). Events 1–6 were "
+        "decoded in Legnica, 7–23 and 26–28 in Wrocław by the IC-705; the NUCLEO decoded 18–20, 22, 23 and "
+        "26–28 together with the IC-705 (offsets −2479, −2440, −2420, −2440, −2439, −2459, −2480, −2439 ms) "
+        "and 24–25 alone (IC-705 off); 29–30 were decoded in Řevnice (KiwiSDR). Since 26.09 16 UTC "
+        "reception in Legnica is poor (local interference).", "cap"),
       P("4. Example data", "h1"),
       P("Table 2 lists the received bytes (before error correction) and the correct "
         "frame computed for the same N. The differences are transmission errors at low SNR, removed by "
-        "the RS code – the frames are proper time frames. Figures 1–3 (pages 3–4) show the carrier phase "
+        "the RS code – the frames are proper time frames. Figures 1–3 (pages 4–5) show the carrier phase "
         "around events 7 and 8."),
       raw_table("en"),
       P("5. Characteristics", "h1"),
       LI("Content: always a valid time frame of slot S+3 (not a repeated or corrupted frame of slot S)."),
-      LI("Position: starts 0.52–0.60 s after the start of slot S (spread about 80 ms, all 20 events), while regular "
+      LI("Position: starts 0.52–0.60 s after the start of slot S (spread about 80 ms, all 30 events), while regular "
          "frames start at the slot boundary with a spread below a few milliseconds."),
       LI("Slot S+3 stays empty – the frame is moved, not duplicated. Slot S is empty before the frame."),
-      LI("Rate: in Wrocław 14 events in 6,293 time frames (about 1 in 450): 3 in 3,195 in the night "
-         "26/27.09, 11 in 3,098 from 09 UTC on 27.09 (about 1 in 280). 6 decoded in Legnica within about "
-         "16 hours. They occur at different times of day, also in bursts: 13:17, 13:18, 13:19 and 13:21 UTC "
-         "on 27.09."),
+      LI("Rate: in Wrocław (IC-705) 20 events in 8,907 time frames (about 1 in 450): 3 in 3,195 in the night "
+         "26/27.09, 11 in 3,098 from 09 UTC on 27.09 (about 1 in 280), 6 in 2,616 from 27.09 20:17 to "
+         "28.09 09:27. 6 decoded in Legnica within about 16 hours, 2 in 354 in Řevnice within 80 minutes. "
+         "They occur at different times of day, also in bursts: 13:17, 13:18, 13:19 and 13:21 UTC on 27.09; "
+         "23:20:00 and 23:20:36 UTC on 27.09; 08:32:36 and 08:34:00 UTC on 28.09."),
+      LI("The same at a distant site: in Řevnice (KiwiSDR, GPS time axis) events 29 and 30 were received "
+         "without bit errors; they started 0.555 and 0.575 s after the GPS second starting slot S "
+         "(including about 1.5 ms propagation), and slot S+3 stayed empty."),
       P("6. Impact on receivers", "h1"),
       P("A receiver that takes the time from a single valid frame and refers it to the moment of "
         "reception sets its clock about 2.4–2.5 s early (or one slot off). The frame has a valid CRC and "
@@ -309,10 +356,13 @@ s += [P("1. Description", "h1"),
         "<b>github.com/sq6emm/eCzasPL-TimeReceiver225kHz</b>, folder <b>doc/GUM-issue-1</b>:", "pl"),
       LI("recordings/ – IC-705 recordings (8 kHz mono WAV, USB 224.000 kHz): events 7, 8, 9, 18, 19, 20 "
          "(120 s each from 00:02:00, 06:36:30, 08:27:00, 16:18:30, 18:29:30, 18:40:30 UTC) and 14–17 "
-         "(360 s from 13:16:30 UTC);"),
-      LI("legnica-log/ – Legnica receiver log excerpts for all 20 events (FRAME, CLOCK, RAW, SIGNAL lines); "
-         "nucleo-log/ – NUCLEO log for events 18–20;"),
-      LI("ic705-wroclaw/ – classification of all 26,257 slots 26.09 22:11 – 27.09 20:17 (slots.csv) and "
+         "(360 s from 13:16:30 UTC), 21–22 (180 s from 23:19:30), 23 (120 s from 00:13:27), 26 (120 s from "
+         "06:39:45), 27–28 (180 s from 08:32:06); KiwiSDR recordings from Řevnice converted to the same "
+         "format, GPS time axis: 29 (120 s from 11:01:30.000), 30 (120 s from 11:10:39.000);"),
+      LI("legnica-log/ – Legnica receiver log excerpts for all 30 events (FRAME, CLOCK, RAW, SIGNAL lines); "
+         "nucleo-log/ – NUCLEO log for events 18–30;"),
+      LI("kiwi-revnice/ – the same for the KiwiSDR receiver in Řevnice, 28.09 10:20–11:40 UTC (1,592 slots);"),
+      LI("ic705-wroclaw/ – classification of all 41,942 slots 26.09 22:11 – 28.09 09:27 (slots.csv) and "
          "all decoded frames with their time offset (frames.csv);"),
       LI("figures/, tools/ – the figures and the scripts that made them."),
       P("The full recordings of the night of 26/27.09 (about 470 MB) are available on request.", "pl"),
@@ -322,7 +372,7 @@ s += [P("1. Description", "h1"),
 
 def footer(c, d):
     c.saveState(); c.setFont("DV", 7.5); c.setFillColor(colors.HexColor("#777"))
-    c.drawString(19*mm, 10*mm, "e-CzasPL Radio 225 kHz – przedwczesne ramki / early frames – SQ6EMM, 27.09.2026")
+    c.drawString(19*mm, 10*mm, "e-CzasPL Radio 225 kHz – przedwczesne ramki / early frames – SQ6EMM, 28.09.2026 (v1.3)")
     c.drawRightString(A4[0]-19*mm, 10*mm, str(d.page)); c.restoreState()
 
 
