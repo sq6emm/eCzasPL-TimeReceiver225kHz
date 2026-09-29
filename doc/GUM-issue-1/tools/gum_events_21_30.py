@@ -73,39 +73,40 @@ def kiwi_blocks(files, wk_ref):
     return out
 
 
-out = []
-t0map = {}
-for k, N, fn, tf, off in IC:
-    fs, x = wf.read("/in/" + fn); x = x.astype(float)
-    S = EPOCH + dt.timedelta(seconds=3 * N) - dt.timedelta(seconds=3)
-    st = 3.0 + off; tS = tf + 0.1 - st                   # proc.py skips the first 0.1 s of a file
-    t0map.setdefault(fn, S - dt.timedelta(seconds=tS))
-    d = analyse(x, fs, tS, st, N, k); d.update(receiver="IC-705 Wroclaw", offset_ms=round(off * 1000)); out.append(d)
-    print(d, flush=True)
-for start, dur, fn in IC_CLIPS:
-    fs, x = wf.read("/in/" + fn); u = dt.datetime.strptime(start, "%Y-%m-%d %H:%M:%S")
-    i = int(round((u - t0map[fn]).total_seconds() * fs)); seg = x[i:i + dur * fs]
-    wf.write(f"/o/ic705_early_frame_{u:%Y%m%d_%H%M%S}.wav", fs, seg.astype(np.int16)); print("clip", u, len(seg) / fs, "s")
+if __name__ == "__main__":
+    out = []
+    t0map = {}
+    for k, N, fn, tf, off in IC:
+        fs, x = wf.read("/in/" + fn); x = x.astype(float)
+        S = EPOCH + dt.timedelta(seconds=3 * N) - dt.timedelta(seconds=3)
+        st = 3.0 + off; tS = tf + 0.1 - st                   # proc.py skips the first 0.1 s of a file
+        t0map.setdefault(fn, S - dt.timedelta(seconds=tS))
+        d = analyse(x, fs, tS, st, N, k); d.update(receiver="IC-705 Wroclaw", offset_ms=round(off * 1000)); out.append(d)
+        print(d, flush=True)
+    for start, dur, fn in IC_CLIPS:
+        fs, x = wf.read("/in/" + fn); u = dt.datetime.strptime(start, "%Y-%m-%d %H:%M:%S")
+        i = int(round((u - t0map[fn]).total_seconds() * fs)); seg = x[i:i + dur * fs]
+        wf.write(f"/o/ic705_early_frame_{u:%Y%m%d_%H%M%S}.wav", fs, seg.astype(np.int16)); print("clip", u, len(seg) / fs, "s")
 
-wk = int((dt.datetime(2026, 9, 28) - GPS0).days // 7)
-blocks = kiwi_blocks(sorted(glob.glob("/kiwi/20260928T1*_225000_czechia_iq.wav")), wk)
-for k, N, off, start in KIWI:
-    u = dt.datetime.strptime(start, "%Y-%m-%d %H:%M:%S"); dur = 120
-    z = np.zeros(dur * FSK, complex); got = 0
-    for ts, x in blocks:
-        j = int(round((ts - u).total_seconds() * FSK))
-        if j + len(x) <= 0 or j >= len(z): continue
-        a, b = max(j, 0), min(j + len(x), len(z)); z[a:b] = x[a - j:b - j]; got += b - a
-    # 12 kHz complex (carrier at 0 Hz) -> 8 kHz 'USB audio' with the carrier at 1 kHz, zero-phase filters
-    y = ss.filtfilt(ss.firwin(301, 900, fs=FSK), 1, z)
-    y = ss.resample_poly(y, 2, 3)
-    y = (y * np.exp(2j * np.pi * 1000 / 8000 * np.arange(len(y)))).real
-    y = (y * 12000 / np.percentile(np.abs(y), 99.9)).clip(-32767, 32767).astype(np.int16)
-    fnc = f"/o/kiwi_czechia_early_frame_{u:%Y%m%d_%H%M%S}.wav"; wf.write(fnc, 8000, y)
-    print("clip", fnc, f"coverage {got / len(z):.1%}")
-    S = EPOCH + dt.timedelta(seconds=3 * N) - dt.timedelta(seconds=3)
-    tS = (S - u).total_seconds()
-    d = analyse(y.astype(float), 8000, tS, 3.0 + off, N, k)
-    d.update(receiver="KiwiSDR Central Czechia", offset_ms=round(off * 1000, 1))
-    out.append(d); print(d, flush=True)
-json.dump(out, open("/o/events_21_30.json", "w"), indent=1)
+    wk = int((dt.datetime(2026, 9, 28) - GPS0).days // 7)
+    blocks = kiwi_blocks(sorted(glob.glob("/kiwi/20260928T1*_225000_czechia_iq.wav")), wk)
+    for k, N, off, start in KIWI:
+        u = dt.datetime.strptime(start, "%Y-%m-%d %H:%M:%S"); dur = 120
+        z = np.zeros(dur * FSK, complex); got = 0
+        for ts, x in blocks:
+            j = int(round((ts - u).total_seconds() * FSK))
+            if j + len(x) <= 0 or j >= len(z): continue
+            a, b = max(j, 0), min(j + len(x), len(z)); z[a:b] = x[a - j:b - j]; got += b - a
+        # 12 kHz complex (carrier at 0 Hz) -> 8 kHz 'USB audio' with the carrier at 1 kHz, zero-phase filters
+        y = ss.filtfilt(ss.firwin(301, 900, fs=FSK), 1, z)
+        y = ss.resample_poly(y, 2, 3)
+        y = (y * np.exp(2j * np.pi * 1000 / 8000 * np.arange(len(y)))).real
+        y = (y * 12000 / np.percentile(np.abs(y), 99.9)).clip(-32767, 32767).astype(np.int16)
+        fnc = f"/o/kiwi_czechia_early_frame_{u:%Y%m%d_%H%M%S}.wav"; wf.write(fnc, 8000, y)
+        print("clip", fnc, f"coverage {got / len(z):.1%}")
+        S = EPOCH + dt.timedelta(seconds=3 * N) - dt.timedelta(seconds=3)
+        tS = (S - u).total_seconds()
+        d = analyse(y.astype(float), 8000, tS, 3.0 + off, N, k)
+        d.update(receiver="KiwiSDR Central Czechia", offset_ms=round(off * 1000, 1))
+        out.append(d); print(d, flush=True)
+    json.dump(out, open("/o/events_21_30.json", "w"), indent=1)
