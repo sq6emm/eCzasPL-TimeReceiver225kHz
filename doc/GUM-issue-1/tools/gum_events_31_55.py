@@ -62,30 +62,37 @@ def to16(y):
     return (y * 12000 / np.percentile(np.abs(y), 99.9)).clip(-32767, 32767).astype(np.int16)
 
 
-kf = sorted(glob.glob("/kiwi/2026092*_225000_czechia_iq.wav"))
-kt = [dt.datetime.strptime(os.path.basename(f)[:16], "%Y%m%dT%H%M%SZ") for f in kf]
-cache = {}
-out = []
-for k, F, ok, oi in EV:
-    F = p(F); S = F - dt.timedelta(seconds=3); u = S - dt.timedelta(seconds=PRE_S)
-    N = int((F - EPOCH).total_seconds() // 3)
-    if ok is not None:
-        use = [f for f, t, tn in zip(kf, kt, kt[1:] + [dt.datetime(2100, 1, 1)])
-               if t <= u + dt.timedelta(seconds=DUR) and tn > u]
-        blocks = []
-        for f in use:
-            if f not in cache:
-                wk = int((dt.datetime.strptime(os.path.basename(f)[:8], "%Y%m%d") - GPS0).days // 7)
-                cache.clear(); cache[f] = kiwi_blocks([f], wk)
-            blocks += cache[f]
-        y, cov = kiwi_audio(u, DUR, blocks)
-        y16 = to16(y); wf.write(f"/o/kiwi_czechia_early_frame_{u:%Y%m%d_%H%M%S}.wav", 8000, y16)
-        d = analyse(y16.astype(float), 8000, PRE_S, 3.0 + ok / 1000, N, k)
-        d.update(receiver="KiwiSDR Central Czechia", offset_ms=ok, coverage=round(cov, 3)); out.append(d); print(d, flush=True)
-    if oi is not None:
-        y, cov = ic_audio(u, DUR)
-        if k == 43:
-            wf.write(f"/o/ic7610_early_frame_{u:%Y%m%d_%H%M%S}.wav", 8000, to16(y))
-        d = analyse(y, 8000, PRE_S, 3.0 + oi / 1000, N, k)
-        d.update(receiver="IC-7610 Wroclaw", offset_ms=oi, coverage=round(cov, 3)); out.append(d); print(d, flush=True)
-json.dump(out, open("/o/events_31_55.json", "w"), indent=1)
+def run(EV, name):
+    """EV: (event, time in frame, KiwiSDR offset ms or None, IC-7610 offset ms or None); clips and
+    received bytes to /o, the analysis to /o/<name>"""
+    kf = sorted(glob.glob("/kiwi/2026*_225000_czechia_iq.wav"))
+    kt = [dt.datetime.strptime(os.path.basename(f)[:16], "%Y%m%dT%H%M%SZ") for f in kf]
+    cache = {}
+    out = []
+    for k, F, ok, oi in EV:
+        F = p(F); S = F - dt.timedelta(seconds=3); u = S - dt.timedelta(seconds=PRE_S)
+        N = int((F - EPOCH).total_seconds() // 3)
+        if ok is not None:
+            use = [f for f, t, tn in zip(kf, kt, kt[1:] + [dt.datetime(2100, 1, 1)])
+                   if t <= u + dt.timedelta(seconds=DUR) and tn > u]
+            blocks = []
+            for f in use:
+                if f not in cache:
+                    wk = int((dt.datetime.strptime(os.path.basename(f)[:8], "%Y%m%d") - GPS0).days // 7)
+                    cache.clear(); cache[f] = kiwi_blocks([f], wk)
+                blocks += cache[f]
+            y, cov = kiwi_audio(u, DUR, blocks)
+            y16 = to16(y); wf.write(f"/o/kiwi_czechia_early_frame_{u:%Y%m%d_%H%M%S}.wav", 8000, y16)
+            d = analyse(y16.astype(float), 8000, PRE_S, 3.0 + ok / 1000, N, k)
+            d.update(receiver="KiwiSDR Central Czechia", offset_ms=ok, coverage=round(cov, 3)); out.append(d); print(d, flush=True)
+        if oi is not None:
+            y, cov = ic_audio(u, DUR)
+            if ok is None:                           # no KiwiSDR decode: the clip from the IC-7610
+                wf.write(f"/o/ic7610_early_frame_{u:%Y%m%d_%H%M%S}.wav", 8000, to16(y))
+            d = analyse(y, 8000, PRE_S, 3.0 + oi / 1000, N, k)
+            d.update(receiver="IC-7610 Wroclaw", offset_ms=oi, coverage=round(cov, 3)); out.append(d); print(d, flush=True)
+    json.dump(out, open(f"/o/{name}", "w"), indent=1)
+
+
+if __name__ == "__main__":
+    run(EV, "events_31_55.json")

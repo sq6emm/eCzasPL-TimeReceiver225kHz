@@ -4,26 +4,27 @@ Raport dla GUM (Główny Urząd Miar) wraz z danymi źródłowymi.
 Report for GUM (Central Office of Measures) with its source data.
 
 **Raport / report:** [`eCzasPL_early_frames_2026-09-27.pdf`](eCzasPL_early_frames_2026-09-27.pdf)
-(PL str. 1–8, EN pages 9–14), wersja / version 1.4
+(PL str. 1–8, EN pages 9–15), wersja / version 1.5
 
 ## W skrócie / in short
 
-55 razy (25–29.09.2026) poprawna ramka czasu slotu S+3 została nadana w slocie S,
+64 razy (25–30.09.2026) poprawna ramka czasu slotu S+3 została nadana w slocie S,
 0,50–0,60 s po jego początku, czyli 2,40–2,50 s za wcześnie; slot S+3 był pusty.
 Zarejestrowało to pięć niezależnych odbiorników w trzech miejscach (Legnica; Wrocław: IC-705,
-NUCLEO/STM32 i **nowy w wersji 1.4: ICOM IC-7610**; publiczny odbiornik KiwiSDR w Řevnicach
-w Czechach, 239 km od Wrocławia, z czasem GPS). 29 zdarzeń zdekodowały co najmniej dwa
-odbiorniki jednocześnie, 14 – trzy (Řevnice, NUCLEO i IC-7610). Częstość: IC-705 20 na 8 907
-ramek czasu (ok. 1 na 450), IC-7610 15 na 6 059 (ok. 1 na 400), Řevnice 26 na 8 354 (ok. 1 na 320).
+NUCLEO/STM32 i ICOM IC-7610; publiczny odbiornik KiwiSDR w Řevnicach w Czechach, 239 km od
+Wrocławia, z czasem GPS). 38 zdarzeń zdekodowały co najmniej dwa odbiorniki jednocześnie, 23 – co
+najmniej trzy; **nowe w wersji 1.5: zdarzenie 57 zdekodowały cztery odbiorniki** (Legnica, NUCLEO,
+IC-7610, Řevnice). Częstość: IC-705 20 na 8 907 ramek czasu (ok. 1 na 450), IC-7610 24 na 10 410
+(ok. 1 na 430), Řevnice 35 na 12 341 (ok. 1 na 350).
 
-On 55 occasions (25–29 Sep 2026) a valid time frame of slot S+3 was transmitted in
+On 64 occasions (25–30 Sep 2026) a valid time frame of slot S+3 was transmitted in
 slot S, 0.50–0.60 s after its start, i.e. 2.40–2.50 s early; slot S+3 stayed empty.
 Seen by five independent receivers at three locations (Legnica; Wrocław: IC-705,
-NUCLEO/STM32 and, **new in version 1.4, an ICOM IC-7610**; a public KiwiSDR receiver in
-Řevnice, Czech Republic, 239 km from Wrocław, with GPS time). 29 events were decoded by at
-least two receivers at once, 14 by three (Řevnice, NUCLEO and IC-7610). Rate: IC-705 20 in
-8,907 time frames (about 1 in 450), IC-7610 15 in 6,059 (about 1 in 400), Řevnice 26 in 8,354
-(about 1 in 320).
+NUCLEO/STM32 and an ICOM IC-7610; a public KiwiSDR receiver in Řevnice, Czech Republic,
+239 km from Wrocław, with GPS time). 38 events were decoded by at least two receivers at once,
+23 by at least three; **new in version 1.5: event 57 was decoded by four receivers** (Legnica,
+NUCLEO, IC-7610, Řevnice). Rate: IC-705 20 in 8,907 time frames (about 1 in 450), IC-7610 24 in
+10,410 (about 1 in 430), Řevnice 35 in 12,341 (about 1 in 350).
 
 | # | Slot S (UTC) | Czas w ramce / time in frame | Odchyłka / offset | Odbiornik / receiver |
 |---|---|---|---|---|
@@ -82,6 +83,15 @@ least two receivers at once, 14 by three (Řevnice, NUCLEO and IC-7610). Rate: I
 | 53 | 2026-09-29 11:26:36 | 11:26:39 | −2400 ms | KiwiSDR Řevnice CZ + NUCLEO (−2399 ms) + IC-7610 (−2400 ms) |
 | 54 | 2026-09-29 11:42:57 | 11:43:00 | −2420 ms | KiwiSDR Řevnice CZ + NUCLEO (−2420 ms) + IC-7610 (−2420 ms) |
 | 55 | 2026-09-29 16:13:12 | 16:13:15 | −2480 ms | KiwiSDR Řevnice CZ + NUCLEO (−2479 ms) + IC-7610 (−2480 ms) (Legnica ‡) |
+| 56 | 2026-09−29 17:40:21 | 17:40:24 | −2440 ms | KiwiSDR Řevnice CZ + NUCLEO (−2439 ms) + IC-7610 (−2440 ms) (Legnica ‡) |
+| 57 | 2026-09−29 21:09:00 | 21:09:03 | −2440 ms | KiwiSDR Řevnice CZ + NUCLEO (−2440 ms) + IC-7610 (−2440 ms) + **Legnica (−2439 ms)** |
+| 58 | 2026-09−29 22:49:36 | 22:49:39 | −2420 ms | KiwiSDR Řevnice CZ + NUCLEO (−2419 ms) + IC-7610 (−2420 ms) (Legnica ‡) |
+| 59 | 2026-09−29 23:29:42 | 23:29:45 | −2441 ms | KiwiSDR Řevnice CZ + NUCLEO (−2439 ms) + IC-7610 (−2439 ms) |
+| 60 | 2026-09-30 01:01:39 | 01:01:42 | −2440 ms | KiwiSDR Řevnice CZ + NUCLEO (−2440 ms) + IC-7610 (−2440 ms) |
+| 61 | 2026-09-30 02:52:21 | 02:52:24 | −2420 ms | KiwiSDR Řevnice CZ + NUCLEO (−2420 ms) + IC-7610 (−2420 ms) (Legnica ‡) |
+| 62 | 2026-09-30 06:24:00 | 06:24:03 | −2440 ms | KiwiSDR Řevnice CZ + NUCLEO (−2440 ms) + IC-7610 (−2440 ms) |
+| 63 | 2026-09-30 07:37:00 | 07:37:03 | −2460 ms | KiwiSDR Řevnice CZ + NUCLEO (−2459 ms) + IC-7610 (−2460 ms) (Legnica ‡) |
+| 64 | 2026-09-30 07:41:45 | 07:41:48 | −2440 ms | KiwiSDR Řevnice CZ + NUCLEO (−2439 ms) + IC-7610 (−2440 ms) |
 
 ‡ Niezdekodowane wykrycie w miejscu ramki (słaba przesłanka) / undecodable detection at the frame's position (weak evidence).
 
@@ -127,12 +137,21 @@ least two receivers at once, 14 by three (Řevnice, NUCLEO and IC-7610). Rate: I
 | `recordings/kiwi_czechia_early_frame_20260929_112606.wav` | Zdarzenie 53, KiwiSDR Řevnice, 60 s od 11:26:06 UTC (oś czasu GPS); wczesna ramka od ok. 30,5 s | Event 53, KiwiSDR Řevnice, 60 s from 11:26:06 UTC (GPS time axis); early frame at about 30.5 s |
 | `recordings/kiwi_czechia_early_frame_20260929_114227.wav` | Zdarzenie 54, KiwiSDR Řevnice, 60 s od 11:42:27 UTC (oś czasu GPS); wczesna ramka od ok. 30,5 s | Event 54, KiwiSDR Řevnice, 60 s from 11:42:27 UTC (GPS time axis); early frame at about 30.5 s |
 | `recordings/kiwi_czechia_early_frame_20260929_161242.wav` | Zdarzenie 55, KiwiSDR Řevnice, 60 s od 16:12:42 UTC (oś czasu GPS); wczesna ramka od ok. 30,5 s | Event 55, KiwiSDR Řevnice, 60 s from 16:12:42 UTC (GPS time axis); early frame at about 30.5 s |
-| `legnica-log/event*.log` | Dziennik odbiornika z Legnicy, S−30 s … S+45 s, wszystkie 55 zdarzeń (od zdarzenia 9 odbiór zbyt słaby; niezdekodowane wykrycia: 14, 15, 21, 26, 30, 35, 37, 39, 40, 42, 44, 50, 51, 55) | Legnica receiver log, S−30 s … S+45 s, all 55 events (from event 9 on, reception too weak; undecodable detections: 14, 15, 21, 26, 30, 35, 37, 39, 40, 42, 44, 50, 51, 55) |
-| `nucleo-log/event*.log` | Dziennik odbiornika NUCLEO (STM32H723, bezpośrednie próbkowanie), zdarzenia 18–32 i 36–55 (33–35: wyłączony) | NUCLEO receiver log (STM32H723, direct sampling), events 18–32 and 36–55 (33–35: off) |
+| `recordings/kiwi_czechia_early_frame_20260929_173951.wav` | Zdarzenie 56, KiwiSDR Řevnice, 60 s od 17:39:51 UTC (oś czasu GPS); wczesna ramka od ok. 30,5 s | Event 56, KiwiSDR Řevnice, 60 s from 17:39:51 UTC (GPS time axis); early frame at about 30.5 s |
+| `recordings/kiwi_czechia_early_frame_20260929_210830.wav` | Zdarzenie 57, KiwiSDR Řevnice, 60 s od 21:08:30 UTC (oś czasu GPS); wczesna ramka od ok. 30,5 s | Event 57, KiwiSDR Řevnice, 60 s from 21:08:30 UTC (GPS time axis); early frame at about 30.5 s |
+| `recordings/kiwi_czechia_early_frame_20260929_224906.wav` | Zdarzenie 58, KiwiSDR Řevnice, 60 s od 22:49:06 UTC (oś czasu GPS); wczesna ramka od ok. 30,5 s | Event 58, KiwiSDR Řevnice, 60 s from 22:49:06 UTC (GPS time axis); early frame at about 30.5 s |
+| `recordings/kiwi_czechia_early_frame_20260929_232912.wav` | Zdarzenie 59, KiwiSDR Řevnice, 60 s od 23:29:12 UTC (oś czasu GPS); wczesna ramka od ok. 30,5 s | Event 59, KiwiSDR Řevnice, 60 s from 23:29:12 UTC (GPS time axis); early frame at about 30.5 s |
+| `recordings/kiwi_czechia_early_frame_20260930_010109.wav` | Zdarzenie 60, KiwiSDR Řevnice, 60 s od 01:01:09 UTC (oś czasu GPS); wczesna ramka od ok. 30,5 s | Event 60, KiwiSDR Řevnice, 60 s from 01:01:09 UTC (GPS time axis); early frame at about 30.5 s |
+| `recordings/kiwi_czechia_early_frame_20260930_025151.wav` | Zdarzenie 61, KiwiSDR Řevnice, 60 s od 02:51:51 UTC (oś czasu GPS); wczesna ramka od ok. 30,5 s | Event 61, KiwiSDR Řevnice, 60 s from 02:51:51 UTC (GPS time axis); early frame at about 30.5 s |
+| `recordings/kiwi_czechia_early_frame_20260930_062330.wav` | Zdarzenie 62, KiwiSDR Řevnice, 60 s od 06:23:30 UTC (oś czasu GPS); wczesna ramka od ok. 30,5 s | Event 62, KiwiSDR Řevnice, 60 s from 06:23:30 UTC (GPS time axis); early frame at about 30.5 s |
+| `recordings/kiwi_czechia_early_frame_20260930_073630.wav` | Zdarzenie 63, KiwiSDR Řevnice, 60 s od 07:36:30 UTC (oś czasu GPS); wczesna ramka od ok. 30,5 s | Event 63, KiwiSDR Řevnice, 60 s from 07:36:30 UTC (GPS time axis); early frame at about 30.5 s |
+| `recordings/kiwi_czechia_early_frame_20260930_074115.wav` | Zdarzenie 64, KiwiSDR Řevnice, 60 s od 07:41:15 UTC (oś czasu GPS); wczesna ramka od ok. 30,5 s | Event 64, KiwiSDR Řevnice, 60 s from 07:41:15 UTC (GPS time axis); early frame at about 30.5 s |
+| `legnica-log/event*.log` | Dziennik odbiornika z Legnicy, S−30 s … S+45 s, wszystkie 64 zdarzenia (od zdarzenia 9 odbiór zbyt słaby; zdekodowane 57; niezdekodowane wykrycia: 14, 15, 21, 26, 30, 35, 37, 39, 40, 42, 44, 50, 51, 55, 56, 58, 61, 63) | Legnica receiver log, S−30 s … S+45 s, all 64 events (from event 9 on, reception too weak; decoded 57; undecodable detections: 14, 15, 21, 26, 30, 35, 37, 39, 40, 42, 44, 50, 51, 55, 56, 58, 61, 63) |
+| `nucleo-log/event*.log` | Dziennik odbiornika NUCLEO (STM32H723, bezpośrednie próbkowanie), zdarzenia 18–32 i 36–64 (33–35: wyłączony) | NUCLEO receiver log (STM32H723, direct sampling), events 18–32 and 36–64 (33–35: off) |
 | `ic705-wroclaw/slots.csv` | Każdy slot 3 s, 26.09 22:11 – 28.09 09:27 UTC (41 942 sloty): treść, CRC, wynik dekodera | Every 3-s slot, 26.09 22:11 – 28.09 09:27 UTC (41,942 slots): content, CRC, decoder result |
 | `ic705-wroclaw/frames.csv` | Każda zdekodowana ramka i jej odchyłka od własnego slotu | Every decoded frame and its offset from its own slot |
-| `kiwi-revnice/slots.csv`, `frames.csv` | To samo dla KiwiSDR w Řevnicach, 28.09 10:20 – 29.09 16:40 UTC (36 333 sloty) | The same for the KiwiSDR in Řevnice, 28.09 10:20 – 29.09 16:40 UTC (36,333 slots) |
-| `ic7610-wroclaw/slots.csv`, `frames.csv` | To samo dla IC-7610 we Wrocławiu, 28.09 20:00 – 29.09 16:40 UTC (24 563 sloty) | The same for the IC-7610 in Wrocław, 28.09 20:00 – 29.09 16:40 UTC (24,563 slots) |
+| `kiwi-revnice/slots.csv`, `frames.csv` | To samo dla KiwiSDR w Řevnicach, 28.09 10:20 – 30.09 07:50 UTC (54 533 sloty) | The same for the KiwiSDR in Řevnice, 28.09 10:20 – 30.09 07:50 UTC (54,533 slots) |
+| `ic7610-wroclaw/slots.csv`, `frames.csv` | To samo dla IC-7610 we Wrocławiu, 28.09 20:00 – 30.09 07:50 UTC (42 680 slotów) | The same for the IC-7610 in Wrocław, 28.09 20:00 – 30.09 07:50 UTC (42,680 slots) |
 | `figures/` | Rysunki z raportu (faza nośnej) | Report figures (carrier phase) |
 | `tools/` | Skrypty: klasyfikacja slotów, rysunki, PDF | Scripts: slot classification, figures, PDF |
 
@@ -152,9 +171,10 @@ the IC-705 format (carrier = 1 kHz tone, 8 kHz), GPS time axis (`tools/gum_event
 with preamplifier, Wrocław; wyjście IF po LAN (odbiornik MAIN, 226,000 kHz) przetworzone do tej
 samej postaci co nagrania IC-705 (nośna = ton 1 kHz, 8 kHz) / IF output over LAN (MAIN receiver,
 226.000 kHz) converted to the IC-705 format (carrier = 1 kHz tone, 8 kHz). Czas z nazwy pliku (NTP),
-ramki ok. 60 ms później; plik 20260929_102015 zaczął się 0,49 s później niż nazwa (restart
-rejestratora) / time from the file name (NTP), frames about 60 ms later; file 20260929_102015 began
-0.49 s after its name (recorder restart) (`tools/gum_events_31_55.py`).
+ramki ok. 60 ms później; pliki po restarcie rejestratora zaczęły się później niż nazwa:
+20260929_102015 o 0,49 s, 20260929_232347 o 0,88 s / time from the file name (NTP), frames about
+60 ms later; files after a recorder restart began later than their names: 20260929_102015 by
+0.49 s, 20260929_232347 by 0.88 s (`tools/gum_events_31_55.py`, `tools/gum_events_56_64.py`).
 
 **Dziennik Legnica / Legnica log:** kolumny 1–2 to czas odbioru linii przez komputer
 (NTP) / columns 1–2 are the host receive time (NTP). `FRAME` – ramka i wynik dekodowania,

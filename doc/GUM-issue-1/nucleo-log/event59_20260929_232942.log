@@ -1,0 +1,31 @@
+# NUCLEO-H723ZG receiver log (Wroclaw, ferrite rod, direct sampling; 10 MHz OCXO time base since 28.09 17:15 UTC, steered to the received carriers since 28.09 ~17:40 UTC, carrier-coherent receiver; frame decoder and timekeeper = eCzas 2.0.5 core), slot S = 2026-09-29 23:29:42 UTC, window S-30 s .. S+45 s
+# column 1: host receive time (UTC, NTP); [uptime s]; STATUS / FRAME / CLOCK lines only (DCF77, CARRIER, TIMEMAP, OCXO and audio dump omitted)
+2026-09-29T23:29:16.818+00:00 [  46130.0] STATUS  2026-09-29 23:29:16 UTC | eCzas carrier locked +0.0 Hz noise 7.8 deg lvl0 -37.4 | heard 5463, decoded 3811, confirmed 4, rejected 16 | DCF77 carrier locked (second marks) +0.0 mHz | clock +6554 ppm (OCXO) | cpu 21%, longest block 1 ms, max lag 0 ms | adc A0 mean 32277 min 32117 max 32520, A1 mean 32274 min 31956 max 32651
+2026-09-29T23:29:17.018+00:00 [  46130.2] FRAME   #5464 corr 78% snr 11 dB, fixed 0: 2026-09-29 23:29:15 UTC
+2026-09-29T23:29:17.018+00:00 [  46130.2] CLOCK   frame agrees with clock, error -0.1 ms
+2026-09-29T23:29:26.824+00:00 [  46140.0] STATUS  2026-09-29 23:29:26 UTC | eCzas carrier locked +0.0 Hz noise 6.6 deg lvl0 -33.8 | heard 5464, decoded 3812, confirmed 4, rejected 16 | DCF77 carrier locked (second marks) +0.0 mHz | clock +6821 ppm (OCXO) | cpu 21%, longest block 1 ms, max lag 0 ms | adc A0 mean 32277 min 32119 max 32501, A1 mean 32273 min 31962 max 32650
+2026-09-29T23:29:36.430+00:00 [  46149.6] FRAME   #5465 corr 41% - not decodable (snr -5 dB)
+2026-09-29T23:29:36.830+00:00 [  46150.0] STATUS  2026-09-29 23:29:36 UTC | eCzas carrier locked +0.0 Hz noise 7.3 deg lvl0 -37.0 | heard 5465, decoded 3812, confirmed 4, rejected 16 | DCF77 carrier locked (second marks) +0.0 mHz | clock +6179 ppm (OCXO) | cpu 21%, longest block 2 ms, max lag 0 ms | adc A0 mean 32276 min 32115 max 32491, A1 mean 32274 min 31944 max 32650
+2026-09-29T23:29:44.635+00:00 [  46157.8] FRAME   #5466 corr 82% snr 10 dB, fixed 0: 2026-09-29 23:29:45 UTC
+2026-09-29T23:29:44.635+00:00 [  46157.8] CLOCK   REJECTED - differs from clock by -2439 ms
+2026-09-29T23:29:46.837+00:00 [  46160.0] STATUS  2026-09-29 23:29:46 UTC | eCzas carrier locked +0.0 Hz noise 7.3 deg lvl0 -37.4 | heard 5466, decoded 3813, confirmed 4, rejected 17 | DCF77 carrier locked (second marks) +0.0 mHz | clock +6293 ppm (OCXO) | cpu 21%, longest block 1 ms, max lag 0 ms | adc A0 mean 32276 min 32103 max 32504, A1 mean 32273 min 31954 max 32654
+2026-09-29T23:29:50.039+00:00 [  46163.2] FRAME   #5467 corr 78% snr 8 dB, fixed 0: 2026-09-29 23:29:48 UTC
+2026-09-29T23:29:50.039+00:00 [  46163.2] CLOCK   frame agrees with clock, error -0.4 ms
+2026-09-29T23:29:53.041+00:00 [  46166.2] FRAME   #5468 corr 75% snr 8 dB, fixed 0: 2026-09-29 23:29:51 UTC
+2026-09-29T23:29:53.041+00:00 [  46166.2] CLOCK   frame agrees with clock, error +0.3 ms
+2026-09-29T23:29:56.043+00:00 [  46169.2] FRAME   #5469 corr 69% snr 7 dB, fixed 0: 2026-09-29 23:29:54 UTC
+2026-09-29T23:29:56.043+00:00 [  46169.2] CLOCK   frame agrees with clock, error -0.2 ms
+2026-09-29T23:29:56.843+00:00 [  46170.0] STATUS  2026-09-29 23:29:56 UTC | eCzas carrier locked +0.0 Hz noise 7.4 deg lvl0 -31.6 | heard 5469, decoded 3816, confirmed 4, rejected 17 | DCF77 carrier locked (second marks) +0.0 mHz | clock +6484 ppm (OCXO) | cpu 21%, longest block 1 ms, max lag 0 ms | adc A0 mean 32276 min 32113 max 32506, A1 mean 32272 min 31954 max 32648
+2026-09-29T23:29:57.443+00:00 [  46170.7] FRAME   #5470 corr 37% - not decodable (snr -6 dB)
+2026-09-29T23:30:05.048+00:00 [  46178.2] FRAME   #5471 corr 80% snr 7 dB, fixed 0: 2026-09-29 23:30:03 UTC
+2026-09-29T23:30:05.048+00:00 [  46178.2] CLOCK   frame agrees with clock, error +0.4 ms
+2026-09-29T23:30:06.849+00:00 [  46180.0] STATUS  2026-09-29 23:30:06 UTC | eCzas carrier locked +0.0 Hz noise 6.7 deg lvl0 -35.4 | heard 5471, decoded 3817, confirmed 4, rejected 17 | DCF77 carrier locked (second marks) +0.0 mHz | clock +6710 ppm (OCXO) | cpu 21%, longest block 1 ms, max lag 0 ms | adc A0 mean 32276 min 32115 max 32501, A1 mean 32271 min 31960 max 32654
+2026-09-29T23:30:16.854+00:00 [  46190.0] STATUS  2026-09-29 23:30:16 UTC | eCzas carrier locked +0.0 Hz noise 8.3 deg lvl0 -37.3 | heard 5471, decoded 3817, confirmed 4, rejected 17 | DCF77 carrier locked (second marks) +0.0 mHz | clock +6291 ppm (OCXO) | cpu 21%, longest block 1 ms, max lag 0 ms | adc A0 mean 32276 min 32096 max 32505, A1 mean 32272 min 31933 max 32655
+2026-09-29T23:30:17.055+00:00 [  46190.2] FRAME   #5472 corr 82% snr 8 dB, fixed 0: 2026-09-29 23:30:15 UTC
+2026-09-29T23:30:17.055+00:00 [  46190.2] CLOCK   frame agrees with clock, error -0.4 ms
+2026-09-29T23:30:18.455+00:00 [  46191.7] FRAME   #5473 corr 29% - not decodable (snr -7 dB)
+2026-09-29T23:30:20.056+00:00 [  46193.2] FRAME   #5474 corr 79% snr 9 dB, fixed 0: 2026-09-29 23:30:18 UTC
+2026-09-29T23:30:20.056+00:00 [  46193.2] CLOCK   frame agrees with clock, error -0.1 ms
+2026-09-29T23:30:23.058+00:00 [  46196.2] FRAME   #5475 corr 77% snr 7 dB, fixed 0: 2026-09-29 23:30:21 UTC
+2026-09-29T23:30:23.058+00:00 [  46196.2] CLOCK   frame agrees with clock, error +0.1 ms
+2026-09-29T23:30:26.861+00:00 [  46200.0] STATUS  2026-09-29 23:30:26 UTC | eCzas carrier locked +0.0 Hz noise 7.1 deg lvl0 -35.0 | heard 5475, decoded 3820, confirmed 4, rejected 17 | DCF77 carrier locked (second marks) +0.0 mHz | clock +6366 ppm (OCXO) | cpu 21%, longest block 8 ms, max lag 0 ms | adc A0 mean 32276 min 32109 max 32500, A1 mean 32273 min 31956 max 32649
