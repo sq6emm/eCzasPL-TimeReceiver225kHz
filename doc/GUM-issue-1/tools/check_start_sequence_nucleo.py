@@ -12,7 +12,7 @@ Each frame is placed where the FIRMWARE puts its second (ramp start, firmware 6b
 import sys, re, glob, os, argparse, datetime as dt, numpy as np
 sys.path.insert(0, "/codec"); from eczas_codec import make_frame
 
-FS = 2000; BIT = 0.020; RAMP = 0.0166; SEQ = "0110100000001100"
+FS = 2000; BIT = 0.020; RAMP = 0.0186; SEQ = "0110100000001100"
 EPOCH = dt.datetime(2000, 1, 1, tzinfo=dt.timezone.utc).timestamp()
 ap = argparse.ArgumentParser(); ap.add_argument("logdir"); ap.add_argument("--since", default="2026-10-01T14:51:00")
 ap.add_argument("--inject", action="store_true"); ap.add_argument("-q", action="store_true")
@@ -46,8 +46,8 @@ for f in dumps:
         # no unwrapping / detrending: the mixer is locked to the OCXO, the carrier moves ~1 ppb (0.0005
         # cycle in 2.6 s); complex means per window, angle against the idle carrier before the frame
         idle = seg[: int(0.25 * FS)].mean()
-        def lvl(k):                                      # samples fully inside 17.5..19.5 ms of bit k
-            t_a, t_b = x0 / FS + k * BIT + 0.0175, x0 / FS + k * BIT + 0.0195
+        def lvl(k):                                      # samples fully inside 18.8..19.8 ms of bit k
+            t_a, t_b = x0 / FS + k * BIT + 0.0188, x0 / FS + k * BIT + 0.0198
             s_a, s_b = int(np.ceil(t_a * FS)), int(np.floor(t_b * FS))
             return np.angle(seg[s_a - i0: max(s_b, s_a + 1) - i0].mean() * np.conj(idle))
         ref = np.array(make_frame(int(round((T - EPOCH) / 3)), 2)) > 0

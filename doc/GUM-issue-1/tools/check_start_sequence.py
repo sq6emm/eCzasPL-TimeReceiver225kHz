@@ -7,8 +7,8 @@ GUM, "Opis ramki czasu e-Czas Radio": "Przed każdą ramką transmitowane są po
 If so, the 16 bits 0110 1000 0000 1100 occupy the 320 ms (16 x 20 ms) right before the first 0x55.
 
 Method (IC-7610 MAIN 226.000 USB, mirrored IF at 13 kHz, 48 kHz stereo WAV): carrier phase at 4 kHz;
-the frame start is fitted with the decoded frame (eczas_codec.make_frame) as 16.6 ms linear phase ramps
-starting at the bit edges; the phase at the end of each 20 ms bit (17.5-19.5 ms into the bit, after
+the frame start is fitted with the decoded frame (eczas_codec.make_frame) as 18.6 ms linear phase ramps (GUM: 19 ms)
+starting at the bit edges; the phase at the end of each 20 ms bit (18.8-19.8 ms into the bit, after
 the ramp) is read for the 96 frame bits and for the 16 bit slots before the frame; each slot is
 expressed on the frame's own scale: 0 = mean level of its '0' bits, 1 = mean level of its '1' bits.
 
@@ -21,7 +21,7 @@ at one level), or something else.
 import sys, csv, argparse, datetime as dt, numpy as np, scipy.io.wavfile as wf, scipy.signal as ss
 sys.path.insert(0, "/codec"); from eczas_codec import make_frame
 
-FS2 = 4000; RAMP = 0.0166; BIT = 0.020
+FS2 = 4000; RAMP = 0.0186; BIT = 0.020
 EPOCH = dt.datetime(2000, 1, 1, tzinfo=dt.timezone.utc)
 SEQ = "0110100000001100"
 
@@ -76,7 +76,7 @@ for r in rows:
         for k in range(16): kx += [st + k * BIT, st + k * BIT + RAMP]; ky += [ky[-1], lev[k]]
         kx += [T - 0.0001]; ky += [ky[-1]]
         inj = np.interp(tt, kx, ky, left=0.0, right=0.0); seg = seg + inj - np.polyval(np.polyfit(tt, inj, 1), tt)
-    lvl = lambda k: seg[int((T + k * BIT + 0.0175) * FS2) - i0: int((T + k * BIT + 0.0195) * FS2) - i0].mean()
+    lvl = lambda k: seg[int((T + k * BIT + 0.0188) * FS2) - i0: int((T + k * BIT + 0.0198) * FS2) - i0].mean()
     fb = np.array([lvl(k) for k in range(96)]); b1 = ref > 0
     l1, l0 = fb[b1].mean(), fb[~b1].mean()
     pre = np.array([(lvl(k) - l0) / (l1 - l0) for k in range(-16, 0)])

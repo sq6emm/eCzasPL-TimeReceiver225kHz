@@ -117,7 +117,7 @@ the '1' bit level) all that time, and the frame starts directly with 0x55 0x55 0
 | NUCLEO-H723ZG (pręt ferrytowy / ferrite rod, OCXO) | 197 (14:58–15:55) | **0** (średnia / mean `1111111111111111`) | wszystkie / all (średnia / mean) | średnia odczytana jako / mean read as `0110100000001100` |
 
 Metoda / method: faza nośnej na końcu każdego 20-ms bitu (po 16,6-ms liniowej rampie), w skali danej
-ramki: 0 = poziom jej bitów „0”, 1 = poziom bitów „1”; 16 pozycji bitowych przed ramką. Krok fazy
+ramki (18,8–19,8 ms bitu, po rampie): 0 = poziom jej bitów „0”, 1 = poziom bitów „1”; 16 pozycji bitowych przed ramką. Krok fazy
 między poziomami 35 ° (GUM: 36 ° ± 3,6 °). Test: ten sam program z wzorem 0x680C (36 °, rampy
 16,6 ms) dodanym do prawdziwych nagrań przed każdą ramką odczytuje go poprawnie – brak sekwencji nie
 wynika więc z metody. / Carrier phase at the end of each 20 ms bit (after the 16.6 ms linear ramp), on
@@ -131,6 +131,16 @@ received bits, 0 errors): `01010101 01010101 01100000 10100010 00100101 10001011
 11001010 01000000 11101110 01010011` (0x55 0x55 0x60 0xA2 0x25 0x8B 0x21 0x8B 0xCA 0x40 0xEE 0x53;
 N = 281394393 → 15:19:39 UTC, TZ = +2 h); 16 pozycji przed ramką / 16 positions before the frame:
 `+0.84 +0.84 +0.85 +0.85 +0.85 +0.85 +0.83 +0.86 +0.85 +0.85 +0.86 +0.87 +0.87 +0.87 +0.82 +0.87`.
+
+Niezależna praca / independent work: J. Sadowski (Politechnika Gdańska / Gdańsk University of
+Technology), „Receiver network for assessing the accuracy of time distribution in e-Czas Radio service”,
+Metrol. Meas. Syst. 32(4), 2025, DOI 10.24425/mms.2025.155800. Tabela struktury wiadomości w tej pracy
+zaczyna się od preambuły 0x5555 – bez sekwencji 0x680C; odczyt bitów 1-0-1 identyczny z naszym (początek
+„0” = 0,5 s po początku transmisji ramki = czas ze znacznika czasu); według informacji GUM przekazanej
+autorowi liniowa zmiana fazy między symbolami trwa obecnie 19 ms (my mierzymy 18,6 ms). / Its message
+structure table starts with the 0x5555 preamble, without 0x680C; it reads the 1-0-1 bits as we do (the
+start of the '0' is 0.5 s after the start of the frame transmission = the timestamp); GUM told the author
+that the linear phase transition currently takes 19 ms (we measure 18.6 ms).
 
 Narzędzia / tools: `tools/check_start_sequence.py` (IC-7610), `tools/check_start_sequence_nucleo.py`
 (NUCLEO), opcja / option `--inject` = test. Obserwacja jest monitorowana co godzinę / monitored hourly.
