@@ -4,9 +4,7 @@ Raport dla GUM (Główny Urząd Miar) wraz z danymi źródłowymi.
 Report for GUM (Central Office of Measures) with its source data.
 
 **Raport / report:** [`eCzasPL_early_frames_2026-09-27.pdf`](eCzasPL_early_frames_2026-09-27.pdf)
-(PL str. 1–8, EN pages 9–15), wersja / version 1.5. Nowe od 1.10.2026 (jeszcze nie w PDF) / new since
-1 Oct 2026 (not yet in the PDF): [obserwacja 2 – brak sekwencji startu 0x680C / observation 2 – no start
-sequence 0x680C](#obserwacja-2-brak-sekwencji-startu-0x680c--observation-2-no-start-sequence-0x680c)
+(PL str. 1–8, EN pages 9–15), wersja / version 1.5.
 
 ## W skrócie / in short
 
@@ -96,54 +94,6 @@ NUCLEO, IC-7610, Řevnice). Rate: IC-705 20 in 8,907 time frames (about 1 in 450
 | 64 | 2026-09-30 07:41:45 | 07:41:48 | −2440 ms | KiwiSDR Řevnice CZ + NUCLEO (−2439 ms) + IC-7610 (−2440 ms) |
 
 ‡ Niezdekodowane wykrycie w miejscu ramki (słaba przesłanka) / undecodable detection at the frame's position (weak evidence).
-
-## Obserwacja 2: brak sekwencji startu 0x680C / observation 2: no start sequence 0x680C
-
-**PL.** Opis ramki czasu GUM (rozdz. 2) podaje: „Przed każdą ramką transmitowane są ponadto 2 B
-(0x680C – 0b0110 0b1000 0b0000 0b1100) będące sekwencją startu. Nie są one częścią depeszy czasowej.”
-16 bitów sekwencji zajmowałoby 320 ms tuż przed pierwszym bajtem 0x55. W odbieranym sygnale
-(1.10.2026, Wrocław) **sekwencji tej nie ma**: przez cały ten czas faza nośnej stoi na poziomie
-spoczynkowym (blisko poziomu bitu „1”), a ramka zaczyna się bezpośrednio od 0x55 0x55 0x60.
-
-**EN.** GUM's frame description (section 2) says: "In addition, 2 B (0x680C – 0b0110 0b1000 0b0000
-0b1100) are transmitted before each frame, which is the start sequence. They are not part of the time
-message." Its 16 bits would occupy the 320 ms right before the first 0x55. In the received signal
-(1 Oct 2026, Wrocław) **the sequence is absent**: the carrier phase rests at its idle level (close to
-the '1' bit level) all that time, and the frame starts directly with 0x55 0x55 0x60.
-
-| Odbiornik / receiver | Ramki czasu / time frames (UTC, 1.10.2026) | z 0x680C / with 0x680C | bez sekwencji / without | Test: 0x680C dodane sztucznie / injected |
-|---|---|---|---|---|
-| ICOM IC-7610 (MAIN 226.000 USB, K9AY) | 491 (14:00–15:50; +32 w przerwie nagrania, pominięte / in a recording gap, skipped) | **0** | 491 | 230 z / of 230 (15:00–15:50) |
-| NUCLEO-H723ZG (pręt ferrytowy / ferrite rod, OCXO) | 197 (14:58–15:55) | **0** (średnia / mean `1111111111111111`) | wszystkie / all (średnia / mean) | średnia odczytana jako / mean read as `0110100000001100` |
-
-Metoda / method: faza nośnej na końcu każdego 20-ms bitu (po 16,6-ms liniowej rampie), w skali danej
-ramki (18,8–19,8 ms bitu, po rampie): 0 = poziom jej bitów „0”, 1 = poziom bitów „1”; 16 pozycji bitowych przed ramką. Krok fazy
-między poziomami 35 ° (GUM: 36 ° ± 3,6 °). Test: ten sam program z wzorem 0x680C (36 °, rampy
-16,6 ms) dodanym do prawdziwych nagrań przed każdą ramką odczytuje go poprawnie – brak sekwencji nie
-wynika więc z metody. / Carrier phase at the end of each 20 ms bit (after the 16.6 ms linear ramp), on
-the frame's own scale: 0 = level of its '0' bits, 1 = level of its '1' bits; the 16 bit positions
-before the frame. Step between the levels 35 deg (GUM: 36 deg ± 3.6 deg). Test: the same program with
-a 0x680C pattern (36 deg, 16.6 ms ramps) added to the real recordings before each frame reads it
-correctly, so the absence is not caused by the method.
-
-Przykład / example – ramka / frame 2026-10-01 15:19:39 UTC (IC-7610, bity odebrane, 0 błędów /
-received bits, 0 errors): `01010101 01010101 01100000 10100010 00100101 10001011 00100001 10001011
-11001010 01000000 11101110 01010011` (0x55 0x55 0x60 0xA2 0x25 0x8B 0x21 0x8B 0xCA 0x40 0xEE 0x53;
-N = 281394393 → 15:19:39 UTC, TZ = +2 h); 16 pozycji przed ramką / 16 positions before the frame:
-`+0.84 +0.84 +0.85 +0.85 +0.85 +0.85 +0.83 +0.86 +0.85 +0.85 +0.86 +0.87 +0.87 +0.87 +0.82 +0.87`.
-
-Niezależna praca / independent work: J. Sadowski (Politechnika Gdańska / Gdańsk University of
-Technology), „Receiver network for assessing the accuracy of time distribution in e-Czas Radio service”,
-Metrol. Meas. Syst. 32(4), 2025, DOI 10.24425/mms.2025.155800. Tabela struktury wiadomości w tej pracy
-zaczyna się od preambuły 0x5555 – bez sekwencji 0x680C; odczyt bitów 1-0-1 identyczny z naszym (początek
-„0” = 0,5 s po początku transmisji ramki = czas ze znacznika czasu); według informacji GUM przekazanej
-autorowi liniowa zmiana fazy między symbolami trwa obecnie 19 ms (my mierzymy 18,6 ms). / Its message
-structure table starts with the 0x5555 preamble, without 0x680C; it reads the 1-0-1 bits as we do (the
-start of the '0' is 0.5 s after the start of the frame transmission = the timestamp); GUM told the author
-that the linear phase transition currently takes 19 ms (we measure 18.6 ms).
-
-Narzędzia / tools: `tools/check_start_sequence.py` (IC-7610), `tools/check_start_sequence_nucleo.py`
-(NUCLEO), opcja / option `--inject` = test. Obserwacja jest monitorowana co godzinę / monitored hourly.
 
 ## Zawartość / contents
 
