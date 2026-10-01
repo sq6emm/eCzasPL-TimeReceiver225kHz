@@ -4,7 +4,7 @@ Raport dla GUM (Główny Urząd Miar) wraz z danymi źródłowymi.
 Report for GUM (Central Office of Measures) with its source data.
 
 **Raport / report:** [`eCzasPL_early_frames_2026-09-27.pdf`](eCzasPL_early_frames_2026-09-27.pdf)
-(PL str. 1–8, EN pages 9–15), wersja / version 1.5.
+(PL str. 1–8, EN pages 9–15), wersja / version 1.5
 
 ## W skrócie / in short
 
