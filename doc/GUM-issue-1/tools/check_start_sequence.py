@@ -60,13 +60,15 @@ for r in rows:
     ph = cache[fn]
     t_name = dt.datetime.strptime(fn[:15], "%Y%m%d_%H%M%S").replace(tzinfo=dt.timezone.utc)
     t0 = (EPOCH + dt.timedelta(seconds=3 * N) - t_name).total_seconds() + 0.05
-    i0, i1 = int((t0 - 0.6) * FS2), int((t0 + 2.2) * FS2)
+    i0, i1 = int((t0 - (1.8 if (t_name.minute % 10 or t_name.second) else 0.6)) * FS2), int((t0 + 2.2) * FS2)
     if i0 < 0 or i1 > len(ph): continue
     seg = ph[i0:i1].copy(); tt = np.arange(i0, i1) / FS2
     ref = np.array(make_frame(N, 2), float) * 2 - 1
     seg = seg - np.polyval(np.polyfit(tt, seg, 1), tt)
     sc = lambda T: float(np.dot(seg, model(tt, T, ref)))
-    g = np.arange(-0.1, 0.1001, 0.0005); j = int(np.argmax(np.abs([sc(t0 + c) for c in g])))
+    # files restarted after an audio stall (name not on the 10-min grid) start 0.5-0.9 s later than named
+    wide = t_name.minute % 10 or t_name.second
+    g = np.arange(-1.2 if wide else -0.1, 0.1001, 0.0005); j = int(np.argmax(np.abs([sc(t0 + c) for c in g])))
     f = np.arange(g[j] - 0.0006, g[j] + 0.00061, 0.00005); T = t0 + refine([sc(t0 + c) for c in f], f)
     if a.inject:                             # self-test: the 16 bits right before the FITTED frame start, '0' = -36 deg
         st = T - 16 * BIT; lev = [0.0 if c == "1" else -np.radians(36) for c in SEQ]
