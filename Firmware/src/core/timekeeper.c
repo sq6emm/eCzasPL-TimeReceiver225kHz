@@ -14,6 +14,13 @@
 #define REF_ROTATE_S      7200
 #define STEP_CONFIRMATIONS 2        /* older frames that must agree before a synced clock is stepped */
 #define PRESYNC_CONFIRMATIONS 2     /* expected-frame matches that confirm a lone candidate */
+#define RATE_MAX_BASE_S   (10L * 86400L)   /* a longer baseline (holdover) starts a new reference instead:
+                                              over ~40 days ticks * 65536 overflowed 64 bits */
+#define RATE_MAX_PPM      200       /* a measured rate further off nominal is not taken */
+#ifndef TK_PAIR_PPM
+#define TK_PAIR_PPM       200       /* frame pairs agree within 20 ms + this (the local clock's error);
+                                       a receiver timed by a disciplined clock can set it lower */
+#endif
 
 static int64_t div_floor(int64_t a, int64_t b)   /* b > 0 */
 {
@@ -28,10 +35,22 @@ void tk_init(tk_t *t)
     t->rate_q16 = NOMINAL_RATE_Q16;
 }
 
+/* ds seconds in ticks at rate (Q16), without the 64-bit overflow of ds * rate beyond ~40 days
+   (a miscorrected frame can be decades off): split the rate into its integer and Q16 parts */
+static int64_t sec_ticks(int64_t ds, int64_t rate_q16)
+{
+    return ds * (rate_q16 >> 16) + div_floor(ds * (rate_q16 & 0xFFFF), 65536);
+}
+
+static int rate_ok(int64_t rate_q16)
+{
+    int64_t d = rate_q16 - NOMINAL_RATE_Q16;
+    return d <= NOMINAL_RATE_Q16 / 1000000 * RATE_MAX_PPM && -d <= NOMINAL_RATE_Q16 / 1000000 * RATE_MAX_PPM;
+}
+
 int64_t tk_second_tick(const tk_t *t, uint32_t sec)
 {
-    int64_t ds = (int64_t)sec - (int64_t)t->anchor_sec;
-    return t->anchor_tick + div_floor(ds * t->rate_q16, 65536);
+    return t->anchor_tick + sec_ticks((int64_t)sec - (int64_t)t->anchor_sec, t->rate_q16);
 }
 
 int tk_time(const tk_t *t, int64_t tick, uint32_t *sec, uint32_t *usec)
@@ -123,8 +142,8 @@ static int cand_confirmations(const tk_t *t)
         int64_t ds = (int64_t)b->sec - a->sec;
         int64_t expect, tol;
         if (ds <= 0 || dt <= 0) continue;
-        expect = div_floor(ds * t->rate_q16, 65536);
-        tol = 20 * TICKS_PER_MS + dt / 5000;           /* 20 ms + 200 ppm */
+        expect = sec_ticks(ds, t->rate_q16);
+        tol = 20 * TICKS_PER_MS + dt / 1000000 * TK_PAIR_PPM;   /* 20 ms + the clock's error */
         if (dt - expect <= tol && expect - dt <= tol) n++;
     }
     return n;
@@ -173,8 +192,11 @@ tk_result_t tk_frame(tk_t *t, int64_t frame_tick, const frame_info_t *fi)
             t->anchor_sec = sec;
             t->anchor_tick = pred + err / 4;
             t->last_ok_tick = tick;
-            if (t->have_old && sec - t->ref_old.sec >= RATE_MIN_BASE_S) {
-                t->rate_q16 = ((tick - t->ref_old.tick) * 65536) / (int64_t)(sec - t->ref_old.sec);
+            if (t->have_old && sec - t->ref_old.sec > RATE_MAX_BASE_S) {
+                t->ref_old.tick = tick; t->ref_old.sec = sec; t->have_new = 0;   /* after a long holdover */
+            } else if (t->have_old && sec - t->ref_old.sec >= RATE_MIN_BASE_S) {
+                int64_t est = ((tick - t->ref_old.tick) * 65536) / (int64_t)(sec - t->ref_old.sec);
+                if (rate_ok(est)) t->rate_q16 = est;
             } else if (t->have_old && sec - t->ref_old.sec >= RATE_EARLY_BASE_S) {
                 /* Before the full baseline: use the short-baseline rate only
                  * when the offset it shows is well above its own noise
@@ -185,12 +207,13 @@ tk_result_t tk_frame(tk_t *t, int64_t frame_tick, const frame_info_t *fi)
                 int64_t est = ((tick - t->ref_old.tick) * 65536) / base;
                 int64_t off = est - NOMINAL_RATE_Q16;
                 int64_t noise = ((int64_t)RATE_EARLY_NOISE_TICKS * 65536) / base;
-                if (off > 2 * noise || -off > 2 * noise) t->rate_q16 = est;
+                if ((off > 2 * noise || -off > 2 * noise) && rate_ok(est)) t->rate_q16 = est;
             }
             if (!t->have_new && sec - t->ref_old.sec >= REF_ROTATE_S) {
                 t->ref_new.tick = tick; t->ref_new.sec = sec; t->have_new = 1;
             } else if (t->have_new && sec - t->ref_new.sec >= REF_ROTATE_S) {
-                t->ref_old = t->ref_new;
+                t->ref_old = t->ref_new; t->have_old = 1;   /* (after a leap second have_old was 0: the
+                                                               rate was never measured again) */
                 t->ref_new.tick = tick; t->ref_new.sec = sec;
             }
             t->ncand = 0;
@@ -237,7 +260,7 @@ int tk_candidate_expected(const tk_t *t, int64_t tick, uint32_t *n3,
         k = (dt * 65536 + per / 2) / per;              /* whole frame periods since */
         if (k < 1) continue;
         expect = div_floor(k * per, 65536);
-        tol = 20 * TICKS_PER_MS + dt / 5000;           /* 20 ms + 200 ppm, as for pairs */
+        tol = 20 * TICKS_PER_MS + dt / 1000000 * TK_PAIR_PPM;   /* as for pairs */
         if (dt - expect > tol || expect - dt > tol) continue;
         *n3 = c->sec / 3 + (uint32_t)k;
         *tz = c->tz;
