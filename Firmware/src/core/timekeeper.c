@@ -17,6 +17,11 @@
 #define RATE_MAX_BASE_S   (10L * 86400L)   /* a longer baseline (holdover) starts a new reference instead:
                                               over ~40 days ticks * 65536 overflowed 64 bits */
 #define RATE_MAX_PPM      200       /* a measured rate further off nominal is not taken */
+#ifndef TK_SYNC_CONFIRMATIONS
+#define TK_SYNC_CONFIRMATIONS 1     /* older frames that must agree for the first sync (a receiver can ask for 2,
+                                       as for a step: two of the transmitter's early frames, 2.4-2.5 s early,
+                                       can agree with each other, three hardly) */
+#endif
 #ifndef TK_PAIR_PPM
 #define TK_PAIR_PPM       200       /* frame pairs agree within 20 ms + this (the local clock's error);
                                        a receiver timed by a disciplined clock can set it lower */
@@ -241,7 +246,7 @@ tk_result_t tk_frame(tk_t *t, int64_t frame_tick, const frame_info_t *fi)
         }
     } else {
         add_cand(t, tick, sec, fi);
-        if (cand_confirmations(t) < 1) return TK_CANDIDATE;
+        if (cand_confirmations(t) < TK_SYNC_CONFIRMATIONS) return TK_CANDIDATE;
         sync_to(t, tick, sec);
         r = TK_SYNCED;
     }
