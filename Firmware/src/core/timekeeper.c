@@ -157,10 +157,15 @@ static void set_leap(tk_t *t, const frame_info_t *fi, uint32_t sec)
         if (t->leap_pending && sec + 8UL * 86400UL < t->leap_at) t->leap_pending = 0;
         return;
     }
+    /* GUM's frame description: a leap second only at the start of a quarter, 0:00 UTC, announced
+       "from a few days to at most 1 week" before it - a flag further from a quarter start (a
+       miscorrected frame) does not arm one */
     tk_to_date(sec, &d);
     m = (uint8_t)((d.mon - 1) / 3 * 3 + 4);            /* first month of next quarter */
-    t->leap_at = m > 12 ? tk_from_date((uint16_t)(d.year + 1), 1, 1)
-                        : tk_from_date(d.year, m, 1);
+    uint32_t at = m > 12 ? tk_from_date((uint16_t)(d.year + 1), 1, 1)
+                         : tk_from_date(d.year, m, 1);
+    if (at - sec > 8UL * 86400UL) return;
+    t->leap_at = at;
     t->leap_pending = fi->lss ? -1 : 1;
 }
 
